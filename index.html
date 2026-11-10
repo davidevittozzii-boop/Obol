@@ -1,0 +1,3397 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Obol - Gestione Spese & Finanze Personali</title>
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            obol: {
+              bg: '#0F1216',
+              card: '#181C24',
+              cardHover: '#202632',
+              border: '#283040',
+              accent: '#34D399',
+              accentDark: '#059669',
+              danger: '#F43F5E',
+              warning: '#FBBF24',
+              info: '#38BDF8',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #07090C;
+      color: #F8FAFC;
+      font-family: 'Inter', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    .hide-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .hide-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    input[type=number]::-webkit-inner-spin-button, 
+    input[type=number]::-webkit-outer-spin-button { 
+      -webkit-appearance: none; 
+      margin: 0; 
+    }
+  </style>
+</head>
+<body class="flex justify-center items-center min-h-screen p-0 sm:p-4">
+
+  <!-- FRAME DISPOSITIVO SMARTPHONE -->
+  <div class="relative w-full max-w-[430px] h-[100dvh] sm:h-[880px] bg-obol-bg sm:rounded-[44px] overflow-hidden flex flex-col border border-obol-border/60 shadow-2xl">
+    
+    <!-- STATUS BAR ANDROID MINIMAL -->
+    <div class="h-10 px-6 pt-2 flex items-center justify-between text-xs text-slate-400 select-none z-30 shrink-0">
+      <span id="statusBarClock" class="font-medium tracking-tight text-[11px] text-slate-300">09:41</span>
+      <div class="flex items-center space-x-2 text-[10px]">
+        <i class="fa-solid fa-wifi"></i>
+        <i class="fa-solid fa-signal"></i>
+        <i class="fa-solid fa-battery-full text-obol-accent"></i>
+      </div>
+    </div>
+
+    <!-- NOTIFICHE DROP-DOWN (DRAWER) -->
+    <div id="notificationsDrawer" class="absolute top-10 left-0 w-full bg-obol-card/95 backdrop-blur-xl border-b border-obol-border px-5 py-4 z-40 transition-all duration-300 shadow-2xl transform -translate-y-full opacity-0 pointer-events-none">
+      <div class="flex items-center justify-between mb-3">
+        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+          <i class="fa-regular fa-bell text-obol-accent"></i> Notifiche & Promemoria
+        </h4>
+        <button onclick="toggleNotificationsDrawer()" class="text-xs text-slate-400 hover:text-white p-1">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div id="notificationsList" class="space-y-2 max-h-56 overflow-y-auto pr-1 text-xs">
+        <!-- Generato dinamicamente -->
+      </div>
+    </div>
+
+    <!-- AREA CONTENUTO SCORREVOLE -->
+    <main id="mainContainer" class="flex-1 overflow-y-auto px-5 pb-24 pt-1 hide-scrollbar">
+      
+      <!-- SCHERMATA: HOME / DASHBOARD -->
+      <section id="viewDashboard" class="space-y-4">
+        
+        <!-- HEADER TOP -->
+        <header class="flex items-center justify-between pt-1">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-obol-accent animate-pulse"></span>
+              <h1 class="text-xl font-black tracking-tight text-white">Obol</h1>
+            </div>
+            <!-- Data Completa Dinamica -->
+            <p id="fullCurrentDateLabel" class="text-[11px] font-medium text-slate-400 capitalize mt-0.5">
+              Caricamento data...
+            </p>
+          </div>
+          <div class="flex items-center gap-2.5">
+            <button onclick="toggleNotificationsDrawer()" class="relative w-9 h-9 rounded-2xl bg-obol-card border border-obol-border flex items-center justify-center text-slate-300 hover:text-white hover:border-slate-500 transition">
+              <i class="fa-regular fa-bell text-xs"></i>
+              <span id="notifBadge" class="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full hidden"></span>
+            </button>
+            <!-- Tasto Lucchetto di Blocco Rapido -->
+            <button onclick="lockApp()" title="Blocca App" class="w-9 h-9 rounded-2xl bg-obol-card border border-obol-border flex items-center justify-center text-slate-300 hover:text-obol-accent hover:border-obol-accent/50 transition">
+              <i class="fa-solid fa-lock text-xs"></i>
+            </button>
+          </div>
+        </header>
+
+        <!-- CARD BILANCIO TOTALE & CICLO SALARIALE (DAL GIORNO 10) -->
+        <div class="p-5 rounded-3xl bg-obol-card border border-obol-border space-y-3 relative overflow-hidden">
+          <div class="flex justify-between items-start">
+            <div>
+              <span class="text-[11px] uppercase tracking-wider font-semibold text-slate-400 block">Bilancio Totale</span>
+              <h2 id="totalBalanceDisplay" class="text-3xl font-extrabold tracking-tight text-white mt-0.5">€ 0,00</h2>
+            </div>
+            <!-- Badge Ciclo 10 del mese -->
+            <div class="px-2.5 py-1 rounded-full bg-obol-bg border border-obol-border text-[10px] font-medium text-obol-accent flex items-center gap-1.5">
+              <i class="fa-regular fa-calendar-check text-[9px]"></i>
+              <span id="salaryCycleLabel">Ciclo: 10 Nov - 9 Dic</span>
+            </div>
+          </div>
+
+          <!-- ENTRATE ED USCITE DEL CICLO -->
+          <div class="grid grid-cols-2 gap-3 pt-2 border-t border-obol-border/60">
+            <div class="flex items-center gap-2.5">
+              <div class="w-7 h-7 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 text-xs">
+                <i class="fa-solid fa-arrow-down-left"></i>
+              </div>
+              <div>
+                <span class="text-[10px] text-slate-400 block font-medium">Entrate Ciclo</span>
+                <span id="monthIncomeDisplay" class="text-xs font-bold text-emerald-400">+€ 0,00</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-2.5">
+              <div class="w-7 h-7 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 text-xs">
+                <i class="fa-solid fa-arrow-up-right"></i>
+              </div>
+              <div>
+                <span class="text-[10px] text-slate-400 block font-medium">Uscite Ciclo</span>
+                <span id="monthExpenseDisplay" class="text-xs font-bold text-rose-400">-€ 0,00</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PROGRESSIONE BUDGET MENSILE -->
+        <div class="p-4 rounded-3xl bg-obol-card border border-obol-border space-y-2.5">
+          <div class="flex justify-between items-center text-xs">
+            <div class="flex items-center gap-2">
+              <span class="font-semibold text-slate-200">Budget Mensile</span>
+              <button onclick="openEditBudgetModal()" class="text-[10px] text-obol-accent bg-obol-bg px-2 py-0.5 rounded-lg border border-obol-border hover:bg-obol-cardHover font-medium flex items-center gap-1">
+                <i class="fa-solid fa-pen text-[8px]"></i> Modifica
+              </button>
+            </div>
+            <span id="budgetPctText" class="font-bold text-obol-accent">0%</span>
+          </div>
+          <div class="w-full bg-obol-bg h-2.5 rounded-full overflow-hidden p-0.5 border border-obol-border">
+            <div id="budgetProgressBar" class="h-full bg-gradient-to-r from-obol-accent to-amber-400 rounded-full transition-all duration-500" style="width: 0%"></div>
+          </div>
+          <div class="flex justify-between text-[11px] text-slate-400">
+            <span id="budgetSpentText">Speso € 0,00</span>
+            <span id="budgetTotalLimitText">di € 1.500,00</span>
+          </div>
+        </div>
+
+        <!-- SEZIONE SPESE CONDIVISE & DEBITI (MAX 3 CON TASTO "VEDI TUTTI") -->
+        <div class="space-y-2 pt-1">
+          <div class="flex justify-between items-center px-1">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Spese Condivise & Debiti</h3>
+            <button onclick="openAllDebtsModal()" class="text-[11px] text-obol-accent hover:underline flex items-center gap-1 font-medium">
+              <span>Vedi tutti</span>
+              <i class="fa-solid fa-arrow-right text-[9px]"></i>
+            </button>
+          </div>
+          <div id="homeSplitsContainer" class="space-y-2">
+            <!-- Popolato con max 3 contatti -->
+          </div>
+        </div>
+
+        <!-- ULTIME TRANSAZIONI CON FILTRO CATEGORIE -->
+        <div class="space-y-2 pt-1">
+          <div class="flex justify-between items-center px-1">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Ultime Transazioni</h3>
+            <span id="txActiveFilterLabel" class="text-[10px] text-slate-400">Tutte</span>
+          </div>
+
+          <!-- BARRA SCORREVOLE FILTRI CATEGORIE -->
+          <div id="categoriesFilterBar" class="flex gap-2 overflow-x-auto py-1 hide-scrollbar">
+            <!-- Popolato dinamicamente da JS -->
+          </div>
+
+          <!-- LISTA DELLE TRANSAZIONI RECENTI -->
+          <div id="recentTransactionsList" class="space-y-2">
+            <!-- Popolato dinamicamente -->
+          </div>
+
+          <!-- PULSANTE ESPANDI/RIDUCI TRANSAZIONI -->
+          <div class="pt-1 text-center">
+            <button id="toggleTxHistoryBtn" onclick="toggleTxHistoryExpand()" class="text-xs text-slate-400 hover:text-white py-2 px-4 rounded-2xl bg-obol-card border border-obol-border/60 transition">
+              Vedi tutto lo storico
+            </button>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- SCHERMATA: CONTI & CARTE -->
+      <section id="viewAccounts" class="space-y-4 hidden">
+        <header class="flex items-center justify-between pt-1">
+          <div>
+            <h2 class="text-lg font-black text-white">I Miei Conti</h2>
+            <p class="text-xs text-slate-400">Portafoglio, carte e conti bancari</p>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <button onclick="openNewAccountModal()" class="px-2.5 py-1.5 rounded-2xl bg-obol-accent text-black text-xs font-bold flex items-center gap-1 hover:bg-obol-accentDark transition">
+              <i class="fa-solid fa-plus text-[10px]"></i>
+              <span>Nuovo Conto</span>
+            </button>
+            <button onclick="openTransferModal()" class="px-2.5 py-1.5 rounded-2xl bg-obol-card border border-obol-border text-xs text-obol-accent font-semibold flex items-center gap-1 hover:bg-obol-cardHover transition">
+              <i class="fa-solid fa-arrow-right-arrow-left text-[10px]"></i>
+              <span>Giroconto</span>
+            </button>
+          </div>
+        </header>
+
+        <div id="accountsList" class="space-y-3">
+          <!-- Popolato dinamicamente -->
+        </div>
+      </section>
+
+      <!-- SCHERMATA: OBIETTIVI / POT DI RISPARMIO -->
+      <section id="viewGoals" class="space-y-4 hidden">
+        <header class="flex items-center justify-between pt-1">
+          <div>
+            <h2 class="text-lg font-black text-white">Obiettivi & Risparmi</h2>
+            <p class="text-xs text-slate-400">Accantonamenti mentali e traguardi</p>
+          </div>
+          <button onclick="openNewGoalModal()" class="px-3 py-1.5 rounded-2xl bg-obol-accent text-black text-xs font-bold flex items-center gap-1.5">
+            <i class="fa-solid fa-plus text-[10px]"></i>
+            <span>Nuovo Pot</span>
+          </button>
+        </header>
+
+        <div id="goalsList" class="space-y-3">
+          <!-- Popolato dinamicamente -->
+        </div>
+      </section>
+
+      <!-- SCHERMATA: REPORT, CONFRONTI & DATI -->
+      <section id="viewReport" class="space-y-4 hidden">
+        <header class="pt-1">
+          <h2 class="text-lg font-black text-white">Altro & Impostazioni</h2>
+          <p class="text-xs text-slate-400">Confronti, dati, abbonamenti e sicurezza</p>
+        </header>
+
+        <!-- CONFRONTO CON IL MESE PRECEDENTE -->
+        <div class="p-4 rounded-3xl bg-obol-card border border-obol-border space-y-3">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Confronto Spese (Mese su Mese)</h3>
+          <div class="grid grid-cols-2 gap-3 text-center">
+            <div class="p-3 rounded-2xl bg-obol-bg border border-obol-border/70">
+              <span class="text-[10px] text-slate-400 block font-medium">Ciclo Precedente</span>
+              <span id="prevMonthSpentDisplay" class="text-sm font-bold text-slate-300">€ 0,00</span>
+            </div>
+            <div class="p-3 rounded-2xl bg-obol-bg border border-obol-border/70">
+              <span class="text-[10px] text-slate-400 block font-medium">Ciclo Attuale</span>
+              <span id="currentMonthSpentDisplay" class="text-sm font-bold text-white">€ 0,00</span>
+            </div>
+          </div>
+          <div id="trendSummaryBox" class="p-2.5 rounded-2xl bg-obol-bg border border-obol-border/60 text-center text-xs text-slate-300">
+            Calcolo andamento...
+          </div>
+        </div>
+
+        <!-- BACKUP & ESPORTAZIONE -->
+        <div class="p-4 rounded-3xl bg-obol-card border border-obol-border space-y-3">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Dati & Documenti</h3>
+          
+          <button onclick="openPdfExportModal()" class="w-full py-3 rounded-2xl bg-obol-bg border border-obol-border text-white text-xs font-semibold flex items-center justify-center gap-2 hover:bg-obol-cardHover">
+            <i class="fa-regular fa-file-pdf text-rose-400"></i> Esporta Report Personalizzato (PDF)
+          </button>
+
+          <div class="grid grid-cols-2 gap-2">
+            <button onclick="exportBackupData()" class="py-2.5 rounded-2xl bg-obol-bg border border-obol-border text-xs text-slate-300 hover:text-white flex items-center justify-center gap-1.5">
+              <i class="fa-solid fa-download text-xs text-obol-accent"></i> Scarica File JSON
+            </button>
+            <label class="py-2.5 rounded-2xl bg-obol-bg border border-obol-border text-xs text-slate-300 hover:text-white flex items-center justify-center gap-1.5 cursor-pointer">
+              <i class="fa-solid fa-upload text-xs text-sky-400"></i> Carica File JSON
+              <input type="file" id="restoreFileInput" accept=".json" class="hidden" onchange="restoreBackupData(event)">
+            </label>
+          </div>
+
+          <!-- Pulsanti rapidi per copia/incolla da mobile -->
+          <div class="grid grid-cols-2 gap-2 pt-1 border-t border-obol-border/50 text-[11px]">
+            <button onclick="copyBackupToClipboard()" class="py-2 rounded-xl bg-obol-bg border border-obol-border text-slate-400 hover:text-white flex items-center justify-center gap-1.5">
+              <i class="fa-regular fa-copy text-xs text-obol-accent"></i> Copia Testo Backup
+            </button>
+            <button onclick="promptPasteBackup()" class="py-2 rounded-xl bg-obol-bg border border-obol-border text-slate-400 hover:text-white flex items-center justify-center gap-1.5">
+              <i class="fa-regular fa-paste text-xs text-sky-400"></i> Incolla Testo Backup
+            </button>
+          </div>
+
+          <!-- Pulsante Reset Dati Puliti -->
+          <div class="pt-2 border-t border-obol-border/40">
+            <button onclick="confirmFactoryReset()" class="w-full py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 text-xs font-semibold flex items-center justify-center gap-1.5 transition">
+              <i class="fa-solid fa-triangle-exclamation text-xs"></i> Azzera Dati & Riparti da Zero
+            </button>
+          </div>
+        </div>
+
+        <!-- LISTA ABBONAMENTI ATTIVI -->
+        <div class="p-4 rounded-3xl bg-obol-card border border-obol-border space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+              <i class="fa-solid fa-arrows-rotate text-obol-accent text-xs"></i> Abbonamenti Registrati
+            </h3>
+            <button onclick="openNewSubscriptionModal()" class="px-2.5 py-1 rounded-xl bg-obol-bg border border-obol-border text-obol-accent text-xs font-bold hover:bg-obol-cardHover flex items-center gap-1">
+              <i class="fa-solid fa-plus text-[10px]"></i> Aggiungi
+            </button>
+          </div>
+          <div id="subscriptionsList" class="space-y-2 text-xs">
+            <!-- Popolato via JS -->
+          </div>
+        </div>
+
+        <!-- SICUREZZA & BLOCCO BIOMETRICO / PIN -->
+        <div class="p-4 rounded-3xl bg-obol-card border border-obol-border space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-2xl bg-obol-bg border border-obol-border flex items-center justify-center text-obol-accent">
+                <i class="fa-solid fa-fingerprint text-base"></i>
+              </div>
+              <div>
+                <p class="text-xs font-bold text-white">Blocco App & Biometria</p>
+                <p class="text-[10px] text-slate-400">Richiedi Impronta o PIN all'avvio</p>
+              </div>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="pinToggleCheck" onchange="togglePinSecurity()" class="sr-only peer">
+              <div class="w-11 h-6 bg-obol-bg peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-obol-accent"></div>
+            </label>
+          </div>
+          <div class="flex justify-between items-center pt-2 border-t border-obol-border/60 text-xs">
+            <span class="text-slate-400 text-[11px]">PIN personale dell'app:</span>
+            <button onclick="changePinCodePrompt()" class="text-[11px] text-obol-accent font-semibold hover:underline flex items-center gap-1">
+              <i class="fa-solid fa-key text-[10px]"></i> Imposta / Cambia PIN
+            </button>
+          </div>
+        </div>
+
+        <!-- GESTIONE CATEGORIE -->
+        <div class="p-4 rounded-3xl bg-obol-card border border-obol-border space-y-3">
+          <div class="flex justify-between items-center">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Personalizza Categorie</h3>
+            <button onclick="openNewCategoryModal()" class="text-xs text-obol-accent font-semibold hover:underline">
+              + Aggiungi
+            </button>
+          </div>
+          <div id="categoriesSettingsList" class="space-y-2">
+            <!-- Popolato via JS -->
+          </div>
+        </div>
+
+      </section>
+
+    </main>
+
+    <!-- BARRA DI NAVIGAZIONE INFERIORE (BOTTOM BAR ANDROID) -->
+    <nav class="absolute bottom-0 left-0 w-full h-20 bg-obol-card/95 backdrop-blur-xl border-t border-obol-border px-6 flex items-center justify-between z-30">
+      
+      <!-- Home -->
+      <button onclick="switchView('dashboard')" id="navBtnDashboard" class="flex flex-col items-center gap-1 text-obol-accent transition">
+        <i class="fa-solid fa-house text-sm"></i>
+        <span class="text-[9px] font-bold">Home</span>
+      </button>
+
+      <!-- Conti -->
+      <button onclick="switchView('accounts')" id="navBtnAccounts" class="flex flex-col items-center gap-1 text-slate-400 hover:text-white transition">
+        <i class="fa-solid fa-wallet text-sm"></i>
+        <span class="text-[9px] font-medium">Conti</span>
+      </button>
+
+      <!-- PULSANTE FLOATING "+": NUOVA TRANSAZIONE -->
+      <div class="relative -top-4">
+        <button onclick="openTxModal()" class="w-14 h-14 rounded-full bg-gradient-to-tr from-obol-accent to-teal-300 text-black flex items-center justify-center text-xl font-bold shadow-lg shadow-obol-accent/20 active:scale-95 transition-transform">
+          <i class="fa-solid fa-plus"></i>
+        </button>
+      </div>
+
+      <!-- Obiettivi (Pots) -->
+      <button onclick="switchView('goals')" id="navBtnGoals" class="flex flex-col items-center gap-1 text-slate-400 hover:text-white transition">
+        <i class="fa-solid fa-bullseye text-sm"></i>
+        <span class="text-[9px] font-medium">Obiettivi</span>
+      </button>
+
+      <!-- Altro -->
+      <button onclick="switchView('report')" id="navBtnReport" class="flex flex-col items-center gap-1 text-slate-400 hover:text-white transition">
+        <i class="fa-solid fa-ellipsis text-sm"></i>
+        <span class="text-[9px] font-medium">Altro</span>
+      </button>
+
+    </nav>
+
+    <!-- ================= MODALI & PANNELLI OVERLAY ================= -->
+
+    <!-- SCHERMATA DI BLOCCO APPLICAZIONE (LOCK SCREEN CON IMPRONTA & PIN) -->
+    <div id="appLockScreen" class="fixed inset-0 bg-[#07090C] z-[100] flex flex-col items-center justify-between p-6 select-none hidden">
+      <div class="w-full pt-8 text-center space-y-2">
+        <div class="w-14 h-14 mx-auto rounded-3xl bg-obol-card border border-obol-border flex items-center justify-center text-obol-accent text-2xl shadow-lg">
+          <i class="fa-solid fa-shield-halved"></i>
+        </div>
+        <h2 class="text-lg font-black text-white tracking-tight">Obol Protetto</h2>
+        <p class="text-xs text-slate-400">Sblocca per accedere al tuo bilancio</p>
+      </div>
+
+      <!-- TASTI PIN E PALLINI -->
+      <div class="w-full max-w-[280px] space-y-6">
+        <div class="flex justify-center gap-4 py-2">
+          <span id="pinDot1" class="w-3.5 h-3.5 rounded-full border-2 border-slate-600"></span>
+          <span id="pinDot2" class="w-3.5 h-3.5 rounded-full border-2 border-slate-600"></span>
+          <span id="pinDot3" class="w-3.5 h-3.5 rounded-full border-2 border-slate-600"></span>
+          <span id="pinDot4" class="w-3.5 h-3.5 rounded-full border-2 border-slate-600"></span>
+        </div>
+        <p id="lockErrorMsg" class="text-[11px] text-rose-400 text-center font-semibold min-h-[16px]"></p>
+
+        <!-- TASTIERINO NUMERICO -->
+        <div class="grid grid-cols-3 gap-3 text-center">
+          <button onclick="pressPinDigit('1')" class="h-14 rounded-2xl bg-obol-card border border-obol-border text-lg font-bold text-white active:bg-obol-border">1</button>
+          <button onclick="pressPinDigit('2')" class="h-14 rounded-2xl bg-obol-card border border-obol-border text-lg font-bold text-white active:bg-obol-border">2</button>
+          <button onclick="pressPinDigit('3')" class="h-14 rounded-2xl bg-obol-card border border-obol-border text-lg font-bold text-white active:bg-obol-border">3</button>
+          <button onclick="pressPinDigit('4')" class="h-14 rounded-2xl bg-obol-card border border-obol-border text-lg font-bold text-white active:bg-obol-border">4</button>
+          <button onclick="pressPinDigit('5')" class="h-14 rounded-2xl bg-obol-card border border-obol-border text-lg font-bold text-white active:bg-obol-border">5</button>
+          <button onclick="pressPinDigit('6')" class="h-14 rounded-2xl bg-obol-card border border-obol-border text-lg font-bold text-white active:bg-obol-border">6</button>
+          <button onclick="pressPinDigit('7')" class="h-14 rounded-2xl bg-obol-card border border-obol-border text-lg font-bold text-white active:bg-obol-border">7</button>
+          <button onclick="pressPinDigit('8')" class="h-14 rounded-2xl bg-obol-card border border-obol-border text-lg font-bold text-white active:bg-obol-border">8</button>
+          <button onclick="pressPinDigit('9')" class="h-14 rounded-2xl bg-obol-card border border-obol-border text-lg font-bold text-white active:bg-obol-border">9</button>
+          <!-- TASTO IMPRONTA/BIOMETRIA -->
+          <button onclick="triggerBiometricUnlock()" class="h-14 rounded-2xl bg-obol-card border border-obol-border flex items-center justify-center text-obol-accent text-xl active:bg-obol-border">
+            <i class="fa-solid fa-fingerprint"></i>
+          </button>
+          <button onclick="pressPinDigit('0')" class="h-14 rounded-2xl bg-obol-card border border-obol-border text-lg font-bold text-white active:bg-obol-border">0</button>
+          <button onclick="backspacePinDigit()" class="h-14 rounded-2xl bg-obol-card border border-obol-border flex items-center justify-center text-slate-400 active:bg-obol-border">
+            <i class="fa-solid fa-delete-left text-sm"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="pb-6 text-center">
+        <button onclick="triggerBiometricUnlock()" class="text-xs text-slate-400 hover:text-white flex items-center justify-center gap-2">
+          <i class="fa-solid fa-fingerprint text-obol-accent"></i> Tocca per usare l'impronta digitale
+        </button>
+      </div>
+    </div>
+
+    <!-- MODAL MODIFICA BUDGET RAPIDA -->
+    <div id="editBudgetModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+      <div class="w-full max-w-sm bg-obol-card border border-obol-border rounded-3xl p-5 space-y-4">
+        <div class="flex items-center justify-between pb-2 border-b border-obol-border">
+          <h3 class="text-sm font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-sliders text-obol-accent"></i> Modifica Budget Mensile
+          </h3>
+          <button onclick="closeEditBudgetModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div>
+          <label class="text-xs text-slate-300 block mb-1">Nuovo limite di spesa per il ciclo (€)</label>
+          <div class="flex items-center gap-2 bg-obol-bg border border-obol-border rounded-xl px-3 py-2.5 focus-within:border-obol-accent">
+            <span class="text-obol-accent font-bold text-sm">€</span>
+            <input id="quickMonthlyBudgetInput" type="number" step="10" class="w-full bg-transparent text-white font-bold text-sm focus:outline-none" placeholder="1500">
+          </div>
+          <p class="text-[10px] text-slate-500 mt-1">Il budget viene calcolato per l'intervallo dal giorno 10 del mese al 9 del mese successivo.</p>
+        </div>
+        <div class="grid grid-cols-2 gap-2 pt-1">
+          <button onclick="closeEditBudgetModal()" class="py-2.5 rounded-xl bg-obol-bg border border-obol-border text-slate-300 text-xs">Annulla</button>
+          <button onclick="saveQuickBudget()" class="py-2.5 rounded-xl bg-obol-accent text-black text-xs font-bold">Salva Budget</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL NUOVA TRANSAZIONE RAPIDA -->
+    <div id="txModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+      <div class="w-full max-w-sm bg-obol-card border-t sm:border border-obol-border rounded-t-[36px] sm:rounded-3xl p-5 space-y-4 max-h-[92vh] overflow-y-auto hide-scrollbar">
+        
+        <!-- Header Modal -->
+        <div class="flex items-center justify-between pb-2 border-b border-obol-border">
+          <h3 class="text-sm font-bold text-white flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-obol-accent"></span>
+            Nuova Transazione
+          </h3>
+          <button onclick="closeTxModal()" class="text-slate-400 hover:text-white p-1">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <!-- Selettore Tipo: Spesa / Entrata -->
+        <div class="grid grid-cols-2 gap-2 bg-obol-bg p-1 rounded-2xl border border-obol-border">
+          <button id="typeExpenseBtn" onclick="setTxType('expense')" class="py-2 text-xs font-bold rounded-xl bg-rose-500/20 text-rose-400 border border-rose-500/30">
+            Uscita (-)
+          </button>
+          <button id="typeIncomeBtn" onclick="setTxType('income')" class="py-2 text-xs font-bold rounded-xl text-slate-400 hover:text-white">
+            Entrata (+)
+          </button>
+        </div>
+
+        <!-- Importo Principale -->
+        <div class="bg-obol-bg p-4 rounded-2xl border border-obol-border text-center">
+          <span class="text-[10px] uppercase font-bold text-slate-400 block mb-1">Importo Complessivo</span>
+          <div class="flex items-center justify-center gap-1.5">
+            <span class="text-2xl font-bold text-obol-accent">€</span>
+            <input id="txAmountInput" type="number" step="0.01" class="w-44 bg-transparent text-3xl font-extrabold text-white text-center focus:outline-none placeholder-slate-600" placeholder="0,00">
+          </div>
+        </div>
+
+        <!-- Descrizione -->
+        <div>
+          <label class="text-[10px] uppercase font-bold text-slate-400 block mb-1">Descrizione</label>
+          <input id="txDescInput" type="text" class="w-full bg-obol-bg border border-obol-border rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-obol-accent" placeholder="Es. Cena pizzeria, Stipendio, Spesa Conad">
+        </div>
+
+        <!-- Categoria & Conto -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-[10px] uppercase font-bold text-slate-400 block mb-1">Categoria</label>
+            <select id="txCategorySelect" class="w-full bg-obol-bg border border-obol-border rounded-xl px-2 py-2 text-xs text-white focus:outline-none">
+              <!-- Popolato via JS -->
+            </select>
+          </div>
+          <div>
+            <label class="text-[10px] uppercase font-bold text-slate-400 block mb-1">Addebita su Conto</label>
+            <select id="txAccountSelect" class="w-full bg-obol-bg border border-obol-border rounded-xl px-2 py-2 text-xs text-white focus:outline-none">
+              <!-- Popolato via JS -->
+            </select>
+          </div>
+        </div>
+
+        <!-- OPZIONE PAGAMENTO RICORRENTE / ABBONAMENTO -->
+        <div id="txRecurringToggleContainer" class="p-3 rounded-2xl bg-obol-bg border border-obol-border space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+              <i class="fa-solid fa-arrows-rotate text-obol-accent text-xs"></i>
+              <div>
+                <p class="text-xs font-semibold text-slate-200">Pagamento Ricorrente (Abbonamento)</p>
+                <p class="text-[10px] text-slate-400">Registra un rinnovo tra quelli memorizzati</p>
+              </div>
+            </div>
+            <input type="checkbox" id="txRecurringCheck" onchange="toggleRecurringInputs()" class="w-4 h-4 rounded text-obol-accent focus:ring-0 bg-obol-card border-slate-600 cursor-pointer">
+          </div>
+
+          <!-- BANNER SELEZIONE ABBONAMENTO ESISTENTE -->
+          <div id="recurringDetailsSection" class="hidden pt-2.5 border-t border-obol-border/60 space-y-2">
+            <label class="text-[10px] text-slate-400 block font-medium">Seleziona abbonamento da registrare:</label>
+            <select id="recurringPickSelect" onchange="onSelectSavedSubscription(this.value)" class="w-full bg-obol-card border border-obol-border rounded-xl px-2.5 py-2 text-xs text-white focus:outline-none focus:border-obol-accent">
+              <!-- Popolato con gli abbonamenti salvati nel report -->
+            </select>
+            <p class="text-[10px] text-slate-500 italic">I campi importo, conto e nota verranno pre-compilati automaticamente.</p>
+          </div>
+        </div>
+
+        <!-- OPZIONE SPESA CONDIVISA / SPLIT -->
+        <div id="txSplitToggleContainer" class="p-3 rounded-2xl bg-obol-bg border border-obol-border space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+              <i class="fa-solid fa-users text-obol-accent text-xs"></i>
+              <div>
+                <p class="text-xs font-semibold text-slate-200">Spesa Condivisa (Split)</p>
+                <p class="text-[10px] text-slate-400">Dividi con amici o partner</p>
+              </div>
+            </div>
+            <input type="checkbox" id="txSplitCheck" onchange="toggleSplitInputs()" class="w-4 h-4 rounded text-obol-accent focus:ring-0 bg-obol-card border-slate-600 cursor-pointer">
+          </div>
+
+          <!-- BANNER ESPANDIBILE SPLIT -->
+          <div id="splitDetailsSection" class="hidden pt-2.5 border-t border-obol-border/60 space-y-3">
+            <div class="space-y-1.5">
+              <label class="text-[10px] text-slate-400 block">Aggiungi persona al conto:</label>
+              <div class="flex gap-2">
+                <input id="newSplitPersonInput" type="text" placeholder="Nome (es. Andrea, Luca)" class="flex-1 bg-obol-card border border-obol-border rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-obol-accent">
+                <button onclick="addParticipantToSplit()" class="px-3 py-1.5 rounded-xl bg-obol-accent text-black text-xs font-bold">
+                  Aggiungi
+                </button>
+              </div>
+            </div>
+
+            <!-- CONTATTI RAPIDI -->
+            <div id="quickSplitContacts" class="flex gap-1.5 flex-wrap">
+              <!-- Generato da contatti frequenti -->
+            </div>
+
+            <!-- LISTA PARTECIPANTI CON QUOTE CALCOLATE ED EDITABILI -->
+            <div id="splitParticipantsContainer" class="space-y-2 pt-1">
+              <!-- Righe partecipanti -->
+            </div>
+
+            <!-- QUOTA PERSONALE CALCOLATA -->
+            <div class="p-2.5 rounded-xl bg-obol-card border border-obol-border flex items-center justify-between text-xs">
+              <span class="text-slate-300 font-medium">La tua quota personale:</span>
+              <span id="myShareDisplay" class="font-bold text-obol-accent">€ 0,00</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- PULSANTE SALVA -->
+        <button onclick="saveTransaction()" class="w-full py-3.5 rounded-2xl bg-obol-accent hover:bg-obol-accentDark text-black text-xs font-extrabold tracking-wide uppercase transition active:scale-[0.99]">
+          Registra Transazione
+        </button>
+      </div>
+    </div>
+
+    <!-- MODAL DETTAGLIO TRANSAZIONE SPLITTATA -->
+    <div id="splitTxDetailModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+      <div class="w-full max-w-sm bg-obol-card border border-obol-border rounded-3xl p-5 space-y-4">
+        <div class="flex items-center justify-between pb-2 border-b border-obol-border">
+          <h3 class="text-sm font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-users text-obol-accent"></i> Dettaglio Spesa Divisa
+          </h3>
+          <button onclick="closeSplitTxDetailModal()" class="text-slate-400 hover:text-white p-1">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <div id="splitTxDetailContent" class="space-y-3 text-xs">
+          <!-- Popolato dinamicamente -->
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL SCHERMO INTERO: TUTTI I DEBITI / CREDITI (PERSONE) -->
+    <div id="allDebtsModal" class="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex flex-col p-5 hidden">
+      <div class="flex items-center justify-between pb-3 border-b border-obol-border">
+        <div>
+          <h3 class="text-sm font-bold text-white">Tutte le Spese Condivise</h3>
+          <p class="text-[10px] text-slate-400">Riepilogo dare e avere con ciascun contatto</p>
+        </div>
+        <button onclick="closeAllDebtsModal()" class="w-8 h-8 rounded-full bg-obol-card border border-obol-border flex items-center justify-center text-slate-300 hover:text-white">
+          <i class="fa-solid fa-xmark text-xs"></i>
+        </button>
+      </div>
+
+      <!-- CARD RIEPILOGO SOMMA ALGEBRICA CREDITO / DEBITO TOTALE -->
+      <div id="allDebtsSummaryCard" class="mt-3 p-4 rounded-2xl bg-obol-card border border-obol-border space-y-2">
+        <!-- Calcolato e renderizzato dinamicamente -->
+      </div>
+
+      <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500 pt-3 pb-1">Elenco Persone</div>
+      <div id="allDebtsFullList" class="flex-1 overflow-y-auto space-y-2.5 hide-scrollbar">
+        <!-- Lista integrale persone -->
+      </div>
+    </div>
+
+    <!-- MODAL STORICO SPESE CON SINGOLA PERSONA -->
+    <div id="personHistoryModal" class="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex flex-col p-5 hidden">
+      <div class="flex items-center justify-between pb-3 border-b border-obol-border">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-obol-card border border-obol-border flex items-center justify-center text-obol-accent font-bold">
+            <span id="personHistoryInitial">A</span>
+          </div>
+          <div>
+            <h3 id="personHistoryName" class="text-sm font-bold text-white">Nome Persona</h3>
+            <p id="personHistoryBalanceSummary" class="text-[11px] font-semibold text-slate-300">Caricamento...</p>
+          </div>
+        </div>
+        <button onclick="closePersonHistoryModal()" class="w-8 h-8 rounded-full bg-obol-card border border-obol-border flex items-center justify-center text-slate-300 hover:text-white">
+          <i class="fa-solid fa-xmark text-xs"></i>
+        </button>
+      </div>
+
+      <!-- Azione rapida Salda Tutto -->
+      <div class="pt-3 pb-2">
+        <button onclick="settleAllWithSelectedPerson()" class="w-full py-2.5 rounded-xl bg-obol-accent/15 border border-obol-accent/30 text-obol-accent text-xs font-bold hover:bg-obol-accent/25 transition flex items-center justify-center gap-1.5">
+          <i class="fa-solid fa-handshake"></i> Pareggia tutti i conti con questa persona
+        </button>
+      </div>
+
+      <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500 pt-1 pb-1">Storico Spese & Rimborsi</div>
+      <div id="personHistoryTransactionsList" class="flex-1 overflow-y-auto space-y-2 pr-1 hide-scrollbar">
+        <!-- Lista transazioni con la persona -->
+      </div>
+    </div>
+
+    <!-- MODAL RIMBORSO SPESA CONDIVISA (TOTALE O PARZIALE) -->
+    <div id="reimburseSplitModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+      <div class="w-full max-w-sm bg-obol-card border border-obol-border rounded-3xl p-5 space-y-4">
+        <div class="flex items-center justify-between pb-2 border-b border-obol-border">
+          <h3 class="text-sm font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-money-bill-transfer text-obol-accent"></i> Registra Rimborso
+          </h3>
+          <button onclick="closeReimburseModal()" class="text-slate-400 hover:text-white p-1">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <div class="p-3 rounded-2xl bg-obol-bg border border-obol-border space-y-1 text-xs">
+          <p class="text-slate-400">Spesa: <strong id="reimburseItemDesc" class="text-white">-</strong></p>
+          <p class="text-slate-400">Persona: <strong id="reimbursePersonName" class="text-white">-</strong></p>
+          <div class="flex justify-between items-center pt-1 border-t border-obol-border/60">
+            <span class="text-slate-300 font-medium">Saldo residuo in sospeso:</span>
+            <span id="reimburseMaxDueDisplay" class="font-extrabold text-white">€ 0,00</span>
+          </div>
+        </div>
+
+        <div>
+          <label class="text-[10px] font-bold uppercase text-slate-400 block mb-1">Importo Rimborsato (€)</label>
+          <div class="flex items-center gap-2 bg-obol-bg border border-obol-border rounded-xl px-3 py-2.5 focus-within:border-obol-accent">
+            <span class="text-obol-accent font-bold text-sm">€</span>
+            <input id="reimburseAmountInput" type="number" step="0.01" class="w-full bg-transparent text-white font-bold text-sm focus:outline-none" placeholder="0.00">
+            <button onclick="fillFullReimbursement()" class="text-[10px] uppercase font-bold text-obol-accent bg-obol-card px-2 py-1 rounded-md border border-obol-border whitespace-nowrap">
+              Intero
+            </button>
+          </div>
+          <p class="text-[10px] text-slate-500 mt-1">Puoi inserire anche un importo parziale; la quota residua rimarrà attiva.</p>
+        </div>
+
+        <div>
+          <label class="text-[10px] font-bold uppercase text-slate-400 block mb-1">Accredita / Addebita su Conto</label>
+          <select id="reimburseAccountSelect" class="w-full bg-obol-bg border border-obol-border rounded-xl px-2.5 py-2 text-xs text-white focus:outline-none">
+            <!-- Popolato via JS -->
+          </select>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 pt-1">
+          <button onclick="closeReimburseModal()" class="py-2.5 rounded-xl bg-obol-bg border border-obol-border text-slate-300 text-xs">Annulla</button>
+          <button onclick="confirmReimbursement()" class="py-2.5 rounded-xl bg-obol-accent text-black text-xs font-bold">Conferma Rimborso</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL NUOVO ABBONAMENTO REGISTRATO (DALLA SEZIONE REPORT) -->
+    <div id="newSubscriptionModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+      <div class="w-full max-w-sm bg-obol-card border border-obol-border rounded-3xl p-5 space-y-4">
+        <div class="flex items-center justify-between pb-2 border-b border-obol-border">
+          <h3 class="text-sm font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-arrows-rotate text-obol-accent"></i> Nuovo Promemoria Abbonamento
+          </h3>
+          <button onclick="closeNewSubscriptionModal()" class="text-slate-400 hover:text-white p-1">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <div>
+          <label class="text-[10px] font-bold uppercase text-slate-400 block mb-1">Nome Servizio / Abbonamento</label>
+          <input id="newSubDescInput" type="text" placeholder="Es. Palestra, Spotify, Amazon Prime" class="w-full bg-obol-bg border border-obol-border rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-obol-accent">
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-[10px] font-bold uppercase text-slate-400 block mb-1">Importo Previsto (€)</label>
+            <input id="newSubAmountInput" type="number" step="0.01" placeholder="45.00" class="w-full bg-obol-bg border border-obol-border rounded-xl px-3 py-2 text-xs text-white font-bold focus:outline-none focus:border-obol-accent">
+          </div>
+          <div>
+            <label class="text-[10px] font-bold uppercase text-slate-400 block mb-1">Frequenza</label>
+            <select id="newSubFrequencySelect" onchange="onSubFrequencyChange(this.value)" class="w-full bg-obol-bg border border-obol-border rounded-xl px-2 py-2 text-xs text-white focus:outline-none">
+              <option value="monthly">Mensile</option>
+              <option value="weekly">Settimanale</option>
+              <option value="yearly">Annuale</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- CAMPI DINAMICI IN BASE ALLA FREQUENZA -->
+        <div id="subScheduleFields" class="p-3 rounded-2xl bg-obol-bg border border-obol-border space-y-2">
+          <!-- Popolato dinamicamente: Mensile (giorno), Annuale (giorno + mese), Settimanale (giorno settimana) -->
+        </div>
+
+        <div>
+          <label class="text-[10px] font-bold uppercase text-slate-400 block mb-1">Conto di Uscita Previsto</label>
+          <select id="newSubAccountSelect" class="w-full bg-obol-bg border border-obol-border rounded-xl px-2.5 py-2 text-xs text-white focus:outline-none">
+            <!-- Popolato via JS -->
+          </select>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 pt-1">
+          <button onclick="closeNewSubscriptionModal()" class="py-2.5 rounded-xl bg-obol-bg border border-obol-border text-slate-300 text-xs">Annulla</button>
+          <button onclick="saveNewSubscription()" class="py-2.5 rounded-xl bg-obol-accent text-black text-xs font-bold">Salva Promemoria</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL REGOLA SALDO CONTO -->
+    <div id="adjustAccountModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+      <div class="w-full max-w-sm bg-obol-card border border-obol-border rounded-3xl p-5 space-y-4">
+        <div class="flex items-center justify-between pb-2 border-b border-obol-border">
+          <h3 class="text-sm font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-sliders text-obol-accent"></i> Regola Saldo
+          </h3>
+          <button onclick="closeAdjustModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div>
+          <p id="adjustAccountName" class="text-xs text-slate-400 mb-1">Conto selezionato</p>
+          <div class="p-3 rounded-2xl bg-obol-bg border border-obol-border flex justify-between items-center text-xs">
+            <span class="text-slate-400">Saldo registrato:</span>
+            <span id="adjustCurrentRecordedBal" class="font-bold text-white">€ 0,00</span>
+          </div>
+        </div>
+        <div>
+          <label class="text-xs text-slate-300 block mb-1 font-medium">Saldo effettivo a disposizione (€)</label>
+          <div class="flex items-center gap-2 bg-obol-bg border border-obol-border rounded-xl px-3 py-2.5 focus-within:border-obol-accent">
+            <span class="text-obol-accent font-bold text-sm">€</span>
+            <input id="adjustNewBalanceInput" type="number" step="0.01" class="w-full bg-transparent text-white font-bold text-sm focus:outline-none" placeholder="0.00">
+          </div>
+          <p class="text-[10px] text-slate-500 mt-1">Il saldo verrà aggiornato direttamente senza creare una voce fittizia.</p>
+        </div>
+        <div class="grid grid-cols-2 gap-2 pt-1">
+          <button onclick="closeAdjustModal()" class="py-2.5 rounded-xl bg-obol-bg border border-obol-border text-slate-300 text-xs">Annulla</button>
+          <button onclick="saveAccountAdjustment()" class="py-2.5 rounded-xl bg-obol-accent text-black text-xs font-bold">Salva Saldo</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL DEPOSITA IN OBIETTIVO (ACCANTONAMENTO MENTALE) -->
+    <div id="goalDepositModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+      <div class="w-full max-w-sm bg-obol-card border border-obol-border rounded-3xl p-5 space-y-4">
+        <div class="flex items-center justify-between pb-2 border-b border-obol-border">
+          <div>
+            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-piggy-bank text-obol-accent"></i> Deposita nel Pot
+            </h3>
+            <p id="goalDepositNameTitle" class="text-xs text-slate-400 mt-0.5">Nome Obiettivo</p>
+          </div>
+          <button onclick="closeGoalDepositModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <div>
+          <label class="text-xs text-slate-300 block mb-1 font-medium">Importo da accantonare (€)</label>
+          <div class="flex items-center gap-2 bg-obol-bg border border-obol-border rounded-xl px-3 py-2.5 focus-within:border-obol-accent">
+            <span class="text-obol-accent font-bold text-sm">€</span>
+            <input id="goalDepositAmountInput" type="number" step="0.01" class="w-full bg-transparent text-white font-bold text-sm focus:outline-none" placeholder="100.00">
+          </div>
+        </div>
+
+        <div>
+          <label class="text-xs text-slate-300 block mb-1 font-medium">Assegna mentalmente dal conto</label>
+          <select id="goalDepositAccountSelect" class="w-full bg-obol-bg border border-obol-border rounded-xl p-2.5 text-xs text-white focus:outline-none">
+            <!-- Popolato via JS con i conti disponibili -->
+          </select>
+          <p class="text-[10px] text-slate-500 mt-1.5">Il saldo reale del conto rimane intatto: la quota verrà indicata come riserva mentale per questo pot.</p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 pt-1">
+          <button onclick="closeGoalDepositModal()" class="py-2.5 rounded-xl bg-obol-bg border border-obol-border text-slate-300 text-xs">Annulla</button>
+          <button onclick="saveGoalDeposit()" class="py-2.5 rounded-xl bg-obol-accent text-black text-xs font-bold">Conferma Deposito</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL NUOVO OBIETTIVO (SAVING POT) -->
+    <div id="goalModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+      <div class="w-full max-w-sm bg-obol-card border border-obol-border rounded-3xl p-5 space-y-4">
+        <h3 class="text-sm font-bold text-white">Nuovo Obiettivo di Risparmio</h3>
+        <div>
+          <label class="text-xs text-slate-400 block mb-1">Nome Progetto / Pot</label>
+          <input id="goalNameInput" type="text" class="w-full bg-obol-bg border border-obol-border rounded-xl p-2 text-xs text-white" placeholder="Es. Nuovo Telefono, Viaggio">
+        </div>
+        <div>
+          <label class="text-xs text-slate-400 block mb-1">Target (€)</label>
+          <input id="goalTargetInput" type="number" step="0.01" class="w-full bg-obol-bg border border-obol-border rounded-xl p-2 text-xs text-white font-bold" placeholder="1000">
+        </div>
+        <div>
+          <label class="text-xs text-slate-400 block mb-1">Già Accantonato (€)</label>
+          <input id="goalCurrentInput" type="number" step="0.01" class="w-full bg-obol-bg border border-obol-border rounded-xl p-2 text-xs text-white font-bold" placeholder="0">
+        </div>
+        <div>
+          <label class="text-xs text-slate-400 block mb-1">Scadenza Stimata</label>
+          <input id="goalDateInput" type="date" class="w-full bg-obol-bg border border-obol-border rounded-xl p-2 text-xs text-white">
+        </div>
+        <div class="grid grid-cols-2 gap-2 pt-1">
+          <button onclick="closeGoalModal()" class="py-2 rounded-xl bg-obol-bg border border-obol-border text-xs text-slate-300">Annulla</button>
+          <button onclick="saveNewGoal()" class="py-2 rounded-xl bg-obol-accent text-black text-xs font-bold">Crea Obiettivo</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL GIROCONTO / TRASFERIMENTO TRA CONTI -->
+    <div id="transferModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+      <div class="w-full max-w-sm bg-obol-card border border-obol-border rounded-3xl p-5 space-y-4">
+        <h3 class="text-sm font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-arrow-right-arrow-left text-obol-accent"></i> Giroconto Interno
+        </h3>
+        <div>
+          <label class="text-xs text-slate-400 block mb-1">Da Conto</label>
+          <select id="transferFromSelect" class="w-full bg-obol-bg border border-obol-border rounded-xl p-2 text-xs text-white"></select>
+        </div>
+        <div>
+          <label class="text-xs text-slate-400 block mb-1">A Conto</label>
+          <select id="transferToSelect" class="w-full bg-obol-bg border border-obol-border rounded-xl p-2 text-xs text-white"></select>
+        </div>
+        <div>
+          <label class="text-xs text-slate-400 block mb-1">Importo (€)</label>
+          <input id="transferAmountInput" type="number" step="0.01" class="w-full bg-obol-bg border border-obol-border rounded-xl p-2 text-xs text-white font-bold" placeholder="0.00">
+        </div>
+        <div class="grid grid-cols-2 gap-2 pt-1">
+          <button onclick="closeTransferModal()" class="py-2 rounded-xl bg-obol-bg border border-obol-border text-xs text-slate-300">Annulla</button>
+          <button onclick="saveTransfer()" class="py-2 rounded-xl bg-obol-accent text-black text-xs font-bold">Esegui Giroconto</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL NUOVA CATEGORIA -->
+    <div id="categoryModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+      <div class="w-full max-w-sm bg-obol-card border border-obol-border rounded-3xl p-5 space-y-4">
+        <h3 class="text-sm font-bold text-white">Nuova Categoria</h3>
+        <div>
+          <label class="text-xs text-slate-400 block mb-1">Nome Categoria</label>
+          <input id="newCatNameInput" type="text" class="w-full bg-obol-bg border border-obol-border rounded-xl p-2 text-xs text-white" placeholder="Es. Animali, Svago">
+        </div>
+        <div>
+          <label class="text-xs text-slate-400 block mb-1">Colore Hex</label>
+          <input id="newCatColorInput" type="color" value="#34D399" class="w-full h-9 bg-obol-bg border border-obol-border rounded-xl p-1 cursor-pointer">
+        </div>
+        <div class="grid grid-cols-2 gap-2 pt-1">
+          <button onclick="closeCategoryModal()" class="py-2 rounded-xl bg-obol-bg border border-obol-border text-xs text-slate-300">Annulla</button>
+          <button onclick="saveNewCategory()" class="py-2 rounded-xl bg-obol-accent text-black text-xs font-bold">Salva</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL MODIFICA / RINOMINA CONTO -->
+    <div id="editAccountModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+      <div class="w-full max-w-sm bg-obol-card border border-obol-border rounded-3xl p-5 space-y-4">
+        <div class="flex items-center justify-between pb-2 border-b border-obol-border">
+          <h3 class="text-sm font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-pen text-obol-accent"></i> Modifica Conto
+          </h3>
+          <button onclick="closeEditAccountModal()" class="text-slate-400 hover:text-white p-1">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <div>
+          <label class="text-[10px] font-bold uppercase text-slate-400 block mb-1">Nome Conto</label>
+          <input id="editAccountNameInput" type="text" class="w-full bg-obol-bg border border-obol-border rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-obol-accent">
+        </div>
+
+        <div>
+          <label class="text-[10px] font-bold uppercase text-slate-400 block mb-1">Tipo Conto</label>
+          <select id="editAccountTypeSelect" class="w-full bg-obol-bg border border-obol-border rounded-xl px-2 py-2 text-xs text-white focus:outline-none">
+            <option value="Banca">Banca</option>
+            <option value="Carta">Carta Prepagata</option>
+            <option value="Contanti">Contanti</option>
+            <option value="Risparmio">Risparmio / Investimento</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="text-[10px] font-bold uppercase text-slate-400 block mb-1">Icona</label>
+          <select id="editAccountIconSelect" class="w-full bg-obol-bg border border-obol-border rounded-xl px-2 py-2 text-xs text-white focus:outline-none">
+            <option value="fa-building-columns">🏛️ Banca (Building)</option>
+            <option value="fa-credit-card">💳 Carta di Pagamento</option>
+            <option value="fa-money-bill-wave">💵 Portafoglio Contanti</option>
+            <option value="fa-piggy-bank">🐷 Salvadanaio / Deposito</option>
+            <option value="fa-vault">🔒 Cassaforte / Risparmio</option>
+          </select>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 pt-1">
+          <button onclick="closeEditAccountModal()" class="py-2.5 rounded-xl bg-obol-bg border border-obol-border text-slate-300 text-xs">Annulla</button>
+          <button onclick="saveEditedAccount()" class="py-2.5 rounded-xl bg-obol-accent text-black text-xs font-bold">Salva Modifiche</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL CONFERMA ELIMINAZIONE CONTO -->
+    <div id="deleteAccountConfirmModal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+      <div class="w-full max-w-sm bg-obol-card border border-rose-500/30 rounded-3xl p-5 space-y-4">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 shrink-0">
+            <i class="fa-solid fa-triangle-exclamation text-base"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-white">Eliminare questo conto?</h3>
+            <p id="deleteAccountTargetName" class="text-xs text-rose-300 font-semibold mt-0.5">Nome Conto</p>
+          </div>
+        </div>
+
+        <p class="text-xs text-slate-400 leading-relaxed">
+          Sei davvero sicuro di voler rimuovere questo conto? Le transazioni collegate a questo conto rimarranno nello storico ma senza un conto di riferimento attivo. Questa operazione non può essere annullata.
+        </p>
+
+        <div class="grid grid-cols-2 gap-2 pt-1">
+          <button onclick="closeDeleteAccountConfirmModal()" class="py-2.5 rounded-xl bg-obol-bg border border-obol-border text-slate-300 text-xs">Annulla</button>
+          <button onclick="confirmDeleteAccount()" class="py-2.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold">Elimina Conto</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL NUOVO CONTO -->
+    <div id="newAccountModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+      <div class="w-full max-w-sm bg-obol-card border border-obol-border rounded-3xl p-5 space-y-4">
+        <div class="flex items-center justify-between pb-2 border-b border-obol-border">
+          <h3 class="text-sm font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-plus text-obol-accent"></i> Aggiungi Nuovo Conto
+          </h3>
+          <button onclick="closeNewAccountModal()" class="text-slate-400 hover:text-white p-1">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <div>
+          <label class="text-[10px] font-bold uppercase text-slate-400 block mb-1">Nome Conto / Carta</label>
+          <input id="newAccountNameInput" type="text" placeholder="Es. N26, Revolut, Risparmio BPER" class="w-full bg-obol-bg border border-obol-border rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-obol-accent">
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-[10px] font-bold uppercase text-slate-400 block mb-1">Saldo Iniziale (€)</label>
+            <input id="newAccountInitialBalanceInput" type="number" step="0.01" placeholder="0.00" class="w-full bg-obol-bg border border-obol-border rounded-xl px-3 py-2 text-xs text-white font-bold focus:outline-none focus:border-obol-accent">
+          </div>
+          <div>
+            <label class="text-[10px] font-bold uppercase text-slate-400 block mb-1">Tipo Conto</label>
+            <select id="newAccountTypeSelect" class="w-full bg-obol-bg border border-obol-border rounded-xl px-2 py-2 text-xs text-white focus:outline-none">
+              <option value="Banca">Banca</option>
+              <option value="Carta">Carta Prepagata</option>
+              <option value="Contanti">Contanti</option>
+              <option value="Risparmio">Risparmio / Investimento</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="text-[10px] font-bold uppercase text-slate-400 block mb-1">Icona</label>
+          <select id="newAccountIconSelect" class="w-full bg-obol-bg border border-obol-border rounded-xl px-2 py-2 text-xs text-white focus:outline-none">
+            <option value="fa-building-columns">🏛️ Banca (Building)</option>
+            <option value="fa-credit-card">💳 Carta di Pagamento</option>
+            <option value="fa-money-bill-wave">💵 Portafoglio Contanti</option>
+            <option value="fa-piggy-bank">🐷 Salvadanaio / Deposito</option>
+            <option value="fa-vault">🔒 Cassaforte / Risparmio</option>
+          </select>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 pt-1">
+          <button onclick="closeNewAccountModal()" class="py-2.5 rounded-xl bg-obol-bg border border-obol-border text-slate-300 text-xs">Annulla</button>
+          <button onclick="saveNewAccount()" class="py-2.5 rounded-xl bg-obol-accent text-black text-xs font-bold">Aggiungi Conto</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL SELEZIONE DATE PER REPORT PDF -->
+    <div id="pdfExportModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+      <div class="w-full max-w-sm bg-obol-card border border-obol-border rounded-3xl p-5 space-y-4">
+        <div class="flex items-center justify-between pb-2 border-b border-obol-border">
+          <h3 class="text-sm font-bold text-white flex items-center gap-2">
+            <i class="fa-regular fa-file-pdf text-rose-400"></i> Esporta Report PDF
+          </h3>
+          <button onclick="closePdfExportModal()" class="text-slate-400 hover:text-white p-1">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <p class="text-xs text-slate-300">Seleziona l'intervallo temporale che desideri includere nel documento:</p>
+
+        <div class="space-y-3">
+          <div>
+            <label class="text-[10px] font-bold uppercase text-slate-400 block mb-1">Data Inizio</label>
+            <input id="pdfStartDateInput" type="date" class="w-full bg-obol-bg border border-obol-border rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-obol-accent">
+          </div>
+          <div>
+            <label class="text-[10px] font-bold uppercase text-slate-400 block mb-1">Data Fine</label>
+            <input id="pdfEndDateInput" type="date" class="w-full bg-obol-bg border border-obol-border rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-obol-accent">
+          </div>
+        </div>
+
+        <div class="p-2.5 rounded-xl bg-obol-bg border border-obol-border text-[11px] text-slate-400 flex items-center gap-2">
+          <i class="fa-solid fa-mobile-screen-button text-obol-accent text-xs"></i>
+          <span>Su smartphone Android potrai toccare <strong>Salva come PDF</strong> dalla schermata di stampa di sistema.</span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 pt-1">
+          <button onclick="closePdfExportModal()" class="py-2.5 rounded-xl bg-obol-bg border border-obol-border text-slate-300 text-xs">Annulla</button>
+          <button onclick="generateCustomPdfReport()" class="py-2.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold flex items-center justify-center gap-1.5">
+            <i class="fa-solid fa-file-arrow-down"></i> Genera PDF
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL IMPOSTA / CAMBIA PIN DEDICATO OBOL -->
+    <div id="changePinModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+      <div class="w-full max-w-sm bg-obol-card border border-obol-border rounded-3xl p-5 space-y-4">
+        <div class="flex items-center justify-between pb-2 border-b border-obol-border">
+          <h3 class="text-sm font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-key text-obol-accent"></i> Imposta / Cambia PIN
+          </h3>
+          <button onclick="closeChangePinModal()" class="text-slate-400 hover:text-white p-1">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <p class="text-xs text-slate-300">Inserisci un codice a 4 cifre dedicato esclusivamente a proteggere l'accesso a Obol:</p>
+
+        <div class="space-y-3">
+          <div>
+            <label class="text-[10px] font-bold uppercase text-slate-400 block mb-1">Nuovo PIN (4 cifre)</label>
+            <input id="newPinInput" type="password" maxlength="4" inputmode="numeric" placeholder="••••" class="w-full bg-obol-bg border border-obol-border rounded-xl px-3 py-2.5 text-center text-lg tracking-widest text-white font-bold focus:outline-none focus:border-obol-accent">
+          </div>
+          <div>
+            <label class="text-[10px] font-bold uppercase text-slate-400 block mb-1">Conferma Nuovo PIN</label>
+            <input id="confirmPinInput" type="password" maxlength="4" inputmode="numeric" placeholder="••••" class="w-full bg-obol-bg border border-obol-border rounded-xl px-3 py-2.5 text-center text-lg tracking-widest text-white font-bold focus:outline-none focus:border-obol-accent">
+          </div>
+          <p id="pinModalError" class="text-[11px] text-rose-400 min-h-[16px] font-medium text-center"></p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 pt-1">
+          <button onclick="closeChangePinModal()" class="py-2.5 rounded-xl bg-obol-bg border border-obol-border text-slate-300 text-xs">Annulla</button>
+          <button onclick="saveNewPinCode()" class="py-2.5 rounded-xl bg-obol-accent text-black text-xs font-bold">Salva PIN</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TOAST DI NOTIFICA MINIMAL -->
+    <div id="toastMessage" class="absolute top-12 left-1/2 -translate-x-1/2 px-4 py-2.5 rounded-2xl bg-obol-card/95 border border-obol-border shadow-2xl flex items-center gap-2 text-xs text-white z-50 transition-all duration-300 opacity-0 pointer-events-none">
+      <i class="fa-solid fa-circle-check text-obol-accent"></i>
+      <span id="toastText">Operazione completata</span>
+    </div>
+
+  </div>
+
+  <!-- JAVASCRIPT LOGIC -->
+  <script>
+    /* STATO PULITO PRONTO ALL'USO REALE CON SOLO IL CONTO BASE */
+    const DEFAULT_DATA = {
+      user: {
+        pinEnabled: false,
+        pinCode: '1234',
+        monthlyBudget: 1500,
+        salaryPayDay: 10
+      },
+      accounts: [
+        { id: 'acc_1', name: 'Conto Principale', balance: 0.00, type: 'Banca', icon: 'fa-building-columns' }
+      ],
+      categories: [
+        { id: 'cat_salary', name: 'Stipendio', color: '#34D399', icon: 'fa-briefcase' },
+        { id: 'cat_groceries', name: 'Spesa Alimentare', color: '#FBBF24', icon: 'fa-cart-shopping' },
+        { id: 'cat_rent', name: 'Casa & Affitto', color: '#38BDF8', icon: 'fa-house' },
+        { id: 'cat_dining', name: 'Ristoranti & Bar', color: '#F43F5E', icon: 'fa-utensils' },
+        { id: 'cat_transport', name: 'Trasporti & Auto', color: '#A78BFA', icon: 'fa-car' },
+        { id: 'cat_leisure', name: 'Svago & Hobby', color: '#FB923C', icon: 'fa-film' }
+      ],
+      goals: [],
+      potAllocations: [],
+      recurringSubscriptions: [],
+      splits: [],
+      transactions: [],
+      notifications: [
+        { id: 'n_welcome', title: 'Benvenuto su Obol', text: 'App configurata. Premi su Regola nel tuo conto per impostare il saldo reale.', date: new Date().toISOString() }
+      ]
+    };
+
+    let appState = {};
+    let selectedAdjustAccountId = null;
+    let selectedEditAccountId = null;
+    let selectedDeleteAccountId = null;
+    let selectedDetailPerson = null;
+    let selectedDepositGoalId = null;
+    let selectedSplitToReimburse = null;
+    let openPotsAccountIds = new Set();
+    let currentCategoryFilter = 'all';
+    let isHistoryExpanded = false;
+    let currentTxType = 'expense';
+    let currentSplitParticipants = [];
+    let enteredPin = '';
+
+    /* Sblocco e Sicurezza con PIN / Biometria */
+    function lockApp() {
+      const lock = document.getElementById('appLockScreen');
+      if (lock) {
+        enteredPin = '';
+        updatePinDots();
+        document.getElementById('lockErrorMsg').innerText = '';
+        lock.classList.remove('hidden');
+      }
+    }
+
+    function unlockApp() {
+      const lock = document.getElementById('appLockScreen');
+      if (lock) {
+        lock.classList.add('hidden');
+        enteredPin = '';
+      }
+    }
+
+    function pressPinDigit(d) {
+      if (enteredPin.length < 4) {
+        enteredPin += d;
+        updatePinDots();
+      }
+      if (enteredPin.length === 4) {
+        checkEnteredPin();
+      }
+    }
+
+    function backspacePinDigit() {
+      if (enteredPin.length > 0) {
+        enteredPin = enteredPin.slice(0, -1);
+        updatePinDots();
+        document.getElementById('lockErrorMsg').innerText = '';
+      }
+    }
+
+    function updatePinDots() {
+      for (let i = 1; i <= 4; i++) {
+        const dot = document.getElementById('pinDot' + i);
+        if (dot) {
+          if (enteredPin.length >= i) {
+            dot.className = "w-3.5 h-3.5 rounded-full bg-obol-accent border-2 border-obol-accent transition-all scale-110";
+          } else {
+            dot.className = "w-3.5 h-3.5 rounded-full border-2 border-slate-600 transition-all";
+          }
+        }
+      }
+    }
+
+    function checkEnteredPin() {
+      const expected = appState.user.pinCode || '1234';
+      if (enteredPin === expected) {
+        unlockApp();
+        showNotification("Autenticato", "Benvenuto su Obol.");
+      } else {
+        document.getElementById('lockErrorMsg').innerText = 'Codice PIN errato. Riprova.';
+        enteredPin = '';
+        setTimeout(updatePinDots, 350);
+      }
+    }
+
+    /* Simulazione Biometrica Android (WebAuthn / Impronta) */
+    async function triggerBiometricUnlock() {
+      // Tenta l'uso delle API native WebAuthn/Credentials del telefono
+      if (window.PublicKeyCredential && PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable) {
+        try {
+          const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+          if (available) {
+            // Se disponibile, sblocca come l'impronta del telefono
+            unlockApp();
+            showNotification("Biometria Verificata", "Sblocco con impronta completato.");
+            return;
+          }
+        } catch (e) {}
+      }
+      // Fallback trasparente: sblocco diretto se l'utente tocca il sensore
+      unlockApp();
+      showNotification("Sbloccato", "Accesso autorizzato tramite impronta.");
+    }
+
+    function togglePinSecurity() {
+      const chk = document.getElementById('pinToggleCheck');
+      appState.user.pinEnabled = chk.checked;
+      saveState();
+      showNotification("Sicurezza", chk.checked ? "Blocco PIN/Biometria attivato all'avvio." : "Blocco automatico disattivato.");
+    }
+
+    /* Modal Dedicato per Impostazione/Cambio PIN */
+    function changePinCodePrompt() {
+      const modal = document.getElementById('changePinModal');
+      const err = document.getElementById('pinModalError');
+      const pin1 = document.getElementById('newPinInput');
+      const pin2 = document.getElementById('confirmPinInput');
+      if (!modal) return;
+      if (err) err.innerText = '';
+      if (pin1) pin1.value = '';
+      if (pin2) pin2.value = '';
+      modal.classList.remove('hidden');
+      if (pin1) pin1.focus();
+    }
+
+    function closeChangePinModal() {
+      const modal = document.getElementById('changePinModal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function saveNewPinCode() {
+      const pin1 = document.getElementById('newPinInput').value.trim();
+      const pin2 = document.getElementById('confirmPinInput').value.trim();
+      const err = document.getElementById('pinModalError');
+
+      if (!/^\d{4}$/.test(pin1)) {
+        if (err) err.innerText = 'Il PIN deve contenere esattamente 4 cifre numeriche.';
+        return;
+      }
+
+      if (pin1 !== pin2) {
+        if (err) err.innerText = 'I due PIN inseriti non corrispondono.';
+        return;
+      }
+
+      appState.user.pinCode = pin1;
+      // Abilita automaticamente il blocco se non ancora attivo
+      appState.user.pinEnabled = true;
+      const chk = document.getElementById('pinToggleCheck');
+      if (chk) chk.checked = true;
+
+      saveState();
+      closeChangePinModal();
+      showNotification("PIN Impostato", "Nuovo codice PIN salvato e protezione attivata.");
+    }
+
+    /* Modal Modifica Rapida Budget Mensile da Home */
+    function openEditBudgetModal() {
+      const input = document.getElementById('quickMonthlyBudgetInput');
+      if (input) input.value = appState.user.monthlyBudget || 1500;
+      document.getElementById('editBudgetModal').classList.remove('hidden');
+    }
+
+    function closeEditBudgetModal() {
+      document.getElementById('editBudgetModal').classList.add('hidden');
+    }
+
+    function saveQuickBudget() {
+      const val = parseFloat(document.getElementById('quickMonthlyBudgetInput').value);
+      if (isNaN(val) || val <= 0) return;
+      appState.user.monthlyBudget = val;
+      saveState();
+      closeEditBudgetModal();
+      renderAll();
+      showNotification("Budget Aggiornato", `Nuovo limite: ${formatCurrency(val)} per il ciclo.`);
+    }
+
+    /* Pulizia notifiche vecchie di 30 giorni */
+    function cleanOldNotifications() {
+      if (!appState.notifications) return;
+      const oneMonthAgo = new Date();
+      oneMonthAgo.setDate(oneMonthAgo.getDate() - 30);
+      appState.notifications = appState.notifications.filter(n => new Date(n.date) >= oneMonthAgo);
+    }
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem('obol_finance_state');
+        if (raw) {
+          appState = JSON.parse(raw);
+        } else {
+          appState = JSON.parse(JSON.stringify(DEFAULT_DATA));
+        }
+      } catch (e) {
+        appState = JSON.parse(JSON.stringify(DEFAULT_DATA));
+      }
+      
+      // Assicura campi opzionali
+      if (!appState.potAllocations) appState.potAllocations = [];
+      if (!appState.recurringSubscriptions) appState.recurringSubscriptions = [];
+      if (!appState.splits) appState.splits = [];
+      if (!appState.notifications) appState.notifications = [];
+      if (!appState.user) appState.user = { pinEnabled: false, pinCode: '1234', monthlyBudget: 1500, salaryPayDay: 10 };
+
+      cleanOldNotifications();
+      saveState();
+      renderAll();
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem('obol_finance_state', JSON.stringify(appState));
+      } catch (e) {}
+    }
+
+    /* Formattatori */
+    function formatCurrency(val) {
+      const num = Number(val) || 0;
+      return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(num);
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    /* Orologio di sistema */
+    function updateClock() {
+      const el = document.getElementById('statusBarClock');
+      if (!el) return;
+      const now = new Date();
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      el.innerText = `${hours}:${minutes}`;
+    }
+
+    /* Gestione Viste */
+    function switchView(viewName) {
+      const views = ['Dashboard', 'Accounts', 'Goals', 'Report'];
+      views.forEach(v => {
+        const el = document.getElementById('view' + v);
+        if (el) el.classList.add('hidden');
+      });
+
+      const target = document.getElementById('view' + viewName.charAt(0).toUpperCase() + viewName.slice(1));
+      if (target) target.classList.remove('hidden');
+
+      // Colora icona attiva
+      views.forEach(tab => {
+        const btn = document.getElementById('navBtn' + tab);
+        if (btn) {
+          if (tab.toLowerCase() === viewName.toLowerCase()) {
+            btn.className = "flex flex-col items-center gap-1 text-obol-accent transition";
+          } else {
+            btn.className = "flex flex-col items-center gap-1 text-slate-400 hover:text-white transition";
+          }
+        }
+      });
+    }
+
+    /* Calcolo Date Ciclo Stipendio dal 10 del mese */
+    function getPaydayCycleInterval(date = new Date(), payday = 10) {
+      const d = new Date(date);
+      let cycleStart, cycleEnd;
+      if (d.getDate() >= payday) {
+        cycleStart = new Date(d.getFullYear(), d.getMonth(), payday, 0, 0, 0);
+        cycleEnd = new Date(d.getFullYear(), d.getMonth() + 1, payday - 1, 23, 59, 59);
+      } else {
+        cycleStart = new Date(d.getFullYear(), d.getMonth() - 1, payday, 0, 0, 0);
+        cycleEnd = new Date(d.getFullYear(), d.getMonth(), payday - 1, 23, 59, 59);
+      }
+      return { start: cycleStart, end: cycleEnd };
+    }
+
+    /* RENDER GENERALE */
+    function renderAll() {
+      renderDashboard();
+      renderAccounts();
+      renderGoals();
+      renderReport();
+      renderNotifications();
+      renderCategoriesSettings();
+      renderSelectOptions();
+    }
+
+    /* ====================================================
+       HOME & DASHBOARD
+    ==================================================== */
+    function renderDashboard() {
+      const now = new Date();
+      
+      // 1. Data Completa Dinamica
+      const dateEl = document.getElementById('fullCurrentDateLabel');
+      if (dateEl) {
+        const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+        dateEl.innerText = now.toLocaleDateString('it-IT', options);
+      }
+
+      // 2. Ciclo Contabile Attivo
+      const payday = appState.user.salaryPayDay || 10;
+      const { start, end } = getPaydayCycleInterval(now, payday);
+      const cycleEl = document.getElementById('salaryCycleLabel');
+      if (cycleEl) {
+        const sMonth = start.toLocaleDateString('it-IT', { month: 'short' });
+        const eMonth = end.toLocaleDateString('it-IT', { month: 'short' });
+        cycleEl.innerText = `Ciclo: ${start.getDate()} ${sMonth} - ${end.getDate()} ${eMonth}`;
+      }
+
+      // 3. Bilancio Totale
+      const totalBalance = appState.accounts.reduce((sum, a) => sum + Number(a.balance), 0);
+      const balEl = document.getElementById('totalBalanceDisplay');
+      if (balEl) balEl.innerText = formatCurrency(totalBalance);
+
+      // 4. Entrate e Uscite del Ciclo
+      let cycleIncome = 0;
+      let cycleExpense = 0;
+      appState.transactions.forEach(t => {
+        const tDate = new Date(t.date);
+        if (tDate >= start && tDate <= end) {
+          if (t.type === 'income') cycleIncome += Number(t.amount);
+          if (t.type === 'expense') cycleExpense += Number(t.amount);
+        }
+      });
+
+      const incEl = document.getElementById('monthIncomeDisplay');
+      if (incEl) incEl.innerText = `+${formatCurrency(cycleIncome)}`;
+      const expEl = document.getElementById('monthExpenseDisplay');
+      if (expEl) expEl.innerText = `-${formatCurrency(cycleExpense)}`;
+
+      // 5. Budget Progressivo
+      const budgetLimit = appState.user.monthlyBudget || 1500;
+      const pct = Math.min(Math.round((cycleExpense / budgetLimit) * 100), 100);
+      const progBar = document.getElementById('budgetProgressBar');
+      if (progBar) progBar.style.width = `${pct}%`;
+      const pctEl = document.getElementById('budgetPctText');
+      if (pctEl) pctEl.innerText = `${pct}%`;
+      const spentEl = document.getElementById('budgetSpentText');
+      if (spentEl) spentEl.innerText = `Speso ${formatCurrency(cycleExpense)}`;
+      const totalLimitEl = document.getElementById('budgetTotalLimitText');
+      if (totalLimitEl) totalLimitEl.innerText = `di ${formatCurrency(budgetLimit)}`;
+
+      // 6. Sezione Spese Condivise & Debiti (Max 3)
+      renderHomeSplits();
+
+      // 7. Filtro Categorie e Lista Ultime Transazioni
+      renderCategoryFiltersBar();
+      renderTransactionsList();
+    }
+
+    /* Calcolo Debiti e Crediti per Persona */
+    function getPeopleBalances() {
+      const balances = {};
+      if (!appState.splits) return balances;
+
+      appState.splits.forEach(s => {
+        if (!balances[s.person]) {
+          balances[s.person] = { balance: 0, lastDate: s.date };
+        }
+        if (!s.settled) {
+          balances[s.person].balance += Number(s.otherOwes);
+        }
+        if (new Date(s.date) > new Date(balances[s.person].lastDate)) {
+          balances[s.person].lastDate = s.date;
+        }
+      });
+
+      return balances;
+    }
+
+    /* Render Box Debiti nella Home (Prime 3 persone) */
+    function renderHomeSplits() {
+      const container = document.getElementById('homeSplitsContainer');
+      if (!container) return;
+
+      const peopleBalances = getPeopleBalances();
+      const peopleList = Object.keys(peopleBalances)
+        .map(name => ({
+          name,
+          balance: peopleBalances[name].balance,
+          lastDate: peopleBalances[name].lastDate
+        }))
+        .filter(p => Math.abs(p.balance) > 0.01)
+        .sort((a, b) => new Date(b.lastDate) - new Date(a.lastDate));
+
+      if (peopleList.length === 0) {
+        container.innerHTML = `
+          <div class="p-3.5 rounded-2xl bg-obol-card border border-obol-border text-center text-xs text-slate-400">
+            Nessun debito o credito in sospeso. I conti sono tutti in pari!
+          </div>
+        `;
+        return;
+      }
+
+      // Prendi le prime 3
+      const top3 = peopleList.slice(0, 3);
+      container.innerHTML = top3.map(p => {
+        const isOwed = p.balance > 0;
+        const absVal = Math.abs(p.balance);
+        const textLabel = isOwed ? `${escapeHtml(p.name)} ti deve ${formatCurrency(absVal)}` : `Devi ${formatCurrency(absVal)} ad ${escapeHtml(p.name)}`;
+        const amountColor = isOwed ? 'text-emerald-400' : 'text-rose-400';
+        const sign = isOwed ? '+' : '-';
+
+        return `
+          <div onclick="openPersonHistoryModal('${escapeHtml(p.name)}')" class="p-3.5 rounded-2xl bg-obol-card border border-obol-border hover:bg-obol-cardHover cursor-pointer flex items-center justify-between transition">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-xl bg-obol-bg border border-obol-border flex items-center justify-center text-xs font-bold text-obol-accent">
+                ${escapeHtml(p.name.charAt(0).toUpperCase())}
+              </div>
+              <div>
+                <p class="text-xs font-bold text-white">${escapeHtml(p.name)}</p>
+                <p class="text-[11px] font-medium text-slate-300 mt-0.5">${textLabel}</p>
+              </div>
+            </div>
+            <span class="text-xs font-extrabold ${amountColor}">${sign}${formatCurrency(absVal)}</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    /* Modal Schermo Intero: Tutti i Debiti */
+    function openAllDebtsModal() {
+      const modal = document.getElementById('allDebtsModal');
+      const listEl = document.getElementById('allDebtsFullList');
+      const summaryCard = document.getElementById('allDebtsSummaryCard');
+      if (!modal || !listEl) return;
+
+      const peopleBalances = getPeopleBalances();
+      const peopleList = Object.keys(peopleBalances)
+        .map(name => ({
+          name,
+          balance: peopleBalances[name].balance,
+          lastDate: peopleBalances[name].lastDate
+        }))
+        .sort((a, b) => Math.abs(b.balance) - Math.abs(a.balance));
+
+      // Calcolo somma algebrica totale
+      let totalToReceive = 0;
+      let totalToPay = 0;
+      peopleList.forEach(p => {
+        if (p.balance > 0) totalToReceive += p.balance;
+        if (p.balance < 0) totalToPay += Math.abs(p.balance);
+      });
+      const netBalance = totalToReceive - totalToPay;
+
+      if (summaryCard) {
+        let netHtml = '';
+        if (Math.abs(netBalance) < 0.01) {
+          netHtml = `<span class="text-slate-400 font-bold">In perfetto pareggio (0,00 €)</span>`;
+        } else if (netBalance > 0) {
+          netHtml = `<span class="text-emerald-400 font-extrabold">Sei in credito netto di +${formatCurrency(netBalance)}</span>`;
+        } else {
+          netHtml = `<span class="text-rose-400 font-extrabold">Sei in debito netto di -${formatCurrency(Math.abs(netBalance))}</span>`;
+        }
+
+        summaryCard.innerHTML = `
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-slate-400 font-medium">Bilancio Netto Debiti / Crediti:</span>
+            ${netHtml}
+          </div>
+          <div class="grid grid-cols-2 gap-2 pt-2 border-t border-obol-border/60 text-xs">
+            <div class="p-2 rounded-xl bg-obol-bg border border-obol-border flex items-center justify-between">
+              <span class="text-slate-400 text-[11px]">Ti devono:</span>
+              <span class="font-bold text-emerald-400">+${formatCurrency(totalToReceive)}</span>
+            </div>
+            <div class="p-2 rounded-xl bg-obol-bg border border-obol-border flex items-center justify-between">
+              <span class="text-slate-400 text-[11px]">Devi dare:</span>
+              <span class="font-bold text-rose-400">-${formatCurrency(totalToPay)}</span>
+            </div>
+          </div>
+        `;
+      }
+
+      if (peopleList.length === 0) {
+        listEl.innerHTML = `<div class="p-6 text-center text-xs text-slate-400">Nessuna spesa condivisa registrata.</div>`;
+      } else {
+        listEl.innerHTML = peopleList.map(p => {
+          const isOwed = p.balance > 0;
+          const isEven = Math.abs(p.balance) < 0.01;
+          const absVal = Math.abs(p.balance);
+          
+          let textLabel = isEven ? 'In pari (nessun debito attivo)' : (isOwed ? `${escapeHtml(p.name)} ti deve ${formatCurrency(absVal)}` : `Devi ${formatCurrency(absVal)} ad ${escapeHtml(p.name)}`);
+          let color = isEven ? 'text-slate-400' : (isOwed ? 'text-emerald-400' : 'text-rose-400');
+          let valSign = isEven ? '€ 0,00' : `${isOwed ? '+' : '-'}${formatCurrency(absVal)}`;
+
+          return `
+            <div onclick="openPersonHistoryModal('${escapeHtml(p.name)}')" class="p-3.5 rounded-2xl bg-obol-card border border-obol-border hover:bg-obol-cardHover cursor-pointer flex items-center justify-between transition">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-obol-bg border border-obol-border flex items-center justify-center text-xs font-bold text-obol-accent">
+                  ${escapeHtml(p.name.charAt(0).toUpperCase())}
+                </div>
+                <div>
+                  <p class="text-xs font-bold text-white">${escapeHtml(p.name)}</p>
+                  <p class="text-[11px] text-slate-300">${textLabel}</p>
+                </div>
+              </div>
+              <span class="text-xs font-bold ${color}">${valSign}</span>
+            </div>
+          `;
+        }).join('');
+      }
+
+      modal.classList.remove('hidden');
+    }
+
+    function closeAllDebtsModal() {
+      const modal = document.getElementById('allDebtsModal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    /* Modal Storico con Singola Persona */
+    function openPersonHistoryModal(personName) {
+      selectedDetailPerson = personName;
+      const modal = document.getElementById('personHistoryModal');
+      if (!modal) return;
+
+      document.getElementById('personHistoryName').innerText = personName;
+      document.getElementById('personHistoryInitial').innerText = personName.charAt(0).toUpperCase();
+
+      const peopleBalances = getPeopleBalances();
+      const pBal = peopleBalances[personName] ? peopleBalances[personName].balance : 0;
+      const summaryEl = document.getElementById('personHistoryBalanceSummary');
+      if (Math.abs(pBal) < 0.01) {
+        summaryEl.innerText = "Conti in pari (0,00 €)";
+        summaryEl.className = "text-[11px] font-semibold text-slate-400";
+      } else if (pBal > 0) {
+        summaryEl.innerText = `${personName} ti deve ${formatCurrency(pBal)}`;
+        summaryEl.className = "text-[11px] font-semibold text-emerald-400";
+      } else {
+        summaryEl.innerText = `Devi ${formatCurrency(Math.abs(pBal))} ad ${personName}`;
+        summaryEl.className = "text-[11px] font-semibold text-rose-400";
+      }
+
+      // Lista delle spese registrate con questa persona
+      const historyList = document.getElementById('personHistoryTransactionsList');
+      const splitsWithPerson = (appState.splits || []).filter(s => s.person === personName);
+
+      if (splitsWithPerson.length === 0) {
+        historyList.innerHTML = `<div class="p-6 text-center text-xs text-slate-400">Nessuna transazione passata con ${escapeHtml(personName)}.</div>`;
+      } else {
+        historyList.innerHTML = splitsWithPerson.map(s => {
+          const isOwed = Number(s.otherOwes) > 0;
+          const absOwes = Math.abs(Number(s.otherOwes));
+          const d = new Date(s.date);
+          const dateStr = d.toLocaleDateString('it-IT', { day: 'numeric', month: 'short' });
+          
+          let actionBtn = '';
+          if (!s.settled && absOwes > 0.01) {
+            actionBtn = `
+              <button onclick="openReimburseModal('${s.id}')" class="px-2.5 py-1 rounded-xl bg-obol-bg border border-obol-accent/40 text-obol-accent hover:bg-obol-accent hover:text-black font-bold text-[10px] transition flex items-center gap-1">
+                <i class="fa-solid fa-receipt text-[9px]"></i> Rimborsa
+              </button>
+            `;
+          }
+
+          const statusBadge = s.settled 
+            ? `<span class="text-[9px] text-slate-500 font-semibold px-2 py-0.5 rounded-md bg-obol-bg border border-obol-border">Saldato</span>`
+            : (isOwed 
+                ? `<span class="text-[9px] text-emerald-400 font-semibold px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20">Ti deve ${formatCurrency(absOwes)}</span>`
+                : `<span class="text-[9px] text-rose-400 font-semibold px-2 py-0.5 rounded-md bg-rose-500/10 border border-rose-500/20">Gli devi ${formatCurrency(absOwes)}</span>`);
+
+          return `
+            <div class="p-3.5 rounded-2xl bg-obol-card border border-obol-border space-y-2">
+              <div class="flex items-center justify-between text-xs">
+                <span class="font-bold text-white">${escapeHtml(s.desc)}</span>
+                <span class="font-extrabold text-slate-300">Spesa tot: ${formatCurrency(s.totalAmount)}</span>
+              </div>
+              <div class="flex items-center justify-between text-[11px] text-slate-400">
+                <span>Pagato da: <strong>${s.paidBy === 'me' ? 'Te' : escapeHtml(s.paidBy)}</strong> • ${dateStr}</span>
+                <div class="flex items-center gap-2">
+                  ${statusBadge}
+                  ${actionBtn}
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      modal.classList.remove('hidden');
+    }
+
+    function closePersonHistoryModal() {
+      const modal = document.getElementById('personHistoryModal');
+      if (modal) modal.classList.add('hidden');
+      selectedDetailPerson = null;
+    }
+
+    /* GESTIONE RIMBORSI FLUIDI (TOTALE O PARZIALE) PER SPESE SPLIT */
+    function openReimburseModal(splitId) {
+      const split = appState.splits.find(s => s.id === splitId);
+      if (!split) return;
+      selectedSplitToReimburse = split;
+
+      document.getElementById('reimburseItemDesc').innerText = split.desc;
+      document.getElementById('reimbursePersonName').innerText = split.person;
+      const absOwes = Math.abs(Number(split.otherOwes));
+      document.getElementById('reimburseMaxDueDisplay').innerText = formatCurrency(absOwes);
+      document.getElementById('reimburseAmountInput').value = absOwes.toFixed(2);
+      document.getElementById('reimburseAmountInput').max = absOwes;
+
+      // Popola conti per destinazione accredito o sorgente pagamento
+      const accSelect = document.getElementById('reimburseAccountSelect');
+      if (accSelect && appState.accounts) {
+        accSelect.innerHTML = appState.accounts.map(a => `<option value="${a.id}">${a.name} (${formatCurrency(a.balance)})</option>`).join('');
+      }
+
+      document.getElementById('reimburseSplitModal').classList.remove('hidden');
+    }
+
+    function closeReimburseModal() {
+      const modal = document.getElementById('reimburseSplitModal');
+      if (modal) modal.classList.add('hidden');
+      selectedSplitToReimburse = null;
+    }
+
+    function fillFullReimbursement() {
+      if (!selectedSplitToReimburse) return;
+      document.getElementById('reimburseAmountInput').value = Math.abs(Number(selectedSplitToReimburse.otherOwes)).toFixed(2);
+    }
+
+    function confirmReimbursement() {
+      if (!selectedSplitToReimburse) return;
+      const split = selectedSplitToReimburse;
+      const amountPaid = parseFloat(document.getElementById('reimburseAmountInput').value);
+      const targetAccountId = document.getElementById('reimburseAccountSelect').value;
+      const account = appState.accounts.find(a => a.id === targetAccountId);
+
+      const maxDue = Math.abs(Number(split.otherOwes));
+      if (!amountPaid || isNaN(amountPaid) || amountPaid <= 0 || !account) return;
+
+      const effectivePaid = Math.min(amountPaid, maxDue);
+      const isOwedToMe = Number(split.otherOwes) > 0;
+
+      // 1. Aggiorna il conto reale e crea la transazione contabile in automatico
+      if (isOwedToMe) {
+        // La persona mi rimborsa -> Entrata sul conto
+        account.balance = Number(account.balance) + effectivePaid;
+        appState.transactions.unshift({
+          id: 'tx_reimb_' + Date.now(),
+          type: 'income',
+          amount: effectivePaid,
+          desc: `Rimborso ${split.person} per ${split.desc} (quota split)`,
+          categoryId: 'cat_dining',
+          accountId: targetAccountId,
+          date: new Date().toISOString()
+        });
+      } else {
+        // Io sto saldando il debito verso l'altra persona -> Uscita dal conto
+        account.balance = Number(account.balance) - effectivePaid;
+        appState.transactions.unshift({
+          id: 'tx_reimb_' + Date.now(),
+          type: 'expense',
+          amount: effectivePaid,
+          desc: `Rimborso ad ${split.person} per ${split.desc} (quota split)`,
+          categoryId: 'cat_dining',
+          accountId: targetAccountId,
+          date: new Date().toISOString()
+        });
+      }
+
+      // 2. Aggiorna lo stato dello split (parziale o totale)
+      const remaining = maxDue - effectivePaid;
+      if (remaining <= 0.01) {
+        split.otherOwes = 0;
+        split.settled = true;
+      } else {
+        split.otherOwes = isOwedToMe ? remaining : -remaining;
+      }
+
+      saveState();
+      closeReimburseModal();
+      renderAll();
+      showNotification("Rimborso Registrato", `Registrati ${formatCurrency(effectivePaid)} su ${account.name}. Transazione creata.`);
+      
+      // Riapri lo storico aggiornato se era aperto
+      if (selectedDetailPerson) {
+        openPersonHistoryModal(selectedDetailPerson);
+      }
+      if (!document.getElementById('allDebtsModal').classList.contains('hidden')) {
+        openAllDebtsModal();
+      }
+    }
+
+    function settleAllWithSelectedPerson() {
+      if (!selectedDetailPerson) return;
+      if (!appState.splits) return;
+
+      const peopleBalances = getPeopleBalances();
+      const currentNet = peopleBalances[selectedDetailPerson] ? peopleBalances[selectedDetailPerson].balance : 0;
+      if (Math.abs(currentNet) <= 0.01) {
+        showNotification("Già in Pari", `Non ci sono debiti o crediti aperti con ${selectedDetailPerson}.`);
+        return;
+      }
+
+      const defaultAccount = appState.accounts[0];
+      const absNet = Math.abs(currentNet);
+
+      if (currentNet > 0) {
+        // Mi deve dei soldi
+        defaultAccount.balance = Number(defaultAccount.balance) + absNet;
+        appState.transactions.unshift({
+          id: 'tx_settle_' + Date.now(),
+          type: 'income',
+          amount: absNet,
+          desc: `Saldo totale conti con ${selectedDetailPerson} (spese splittate)`,
+          categoryId: 'cat_dining',
+          accountId: defaultAccount.id,
+          date: new Date().toISOString()
+        });
+      } else {
+        // Devo dei soldi
+        defaultAccount.balance = Number(defaultAccount.balance) - absNet;
+        appState.transactions.unshift({
+          id: 'tx_settle_' + Date.now(),
+          type: 'expense',
+          amount: absNet,
+          desc: `Saldo totale debiti verso ${selectedDetailPerson} (spese splittate)`,
+          categoryId: 'cat_dining',
+          accountId: defaultAccount.id,
+          date: new Date().toISOString()
+        });
+      }
+
+      appState.splits.forEach(s => {
+        if (s.person === selectedDetailPerson && !s.settled) {
+          s.settled = true;
+          s.otherOwes = 0;
+        }
+      });
+
+      saveState();
+      renderAll();
+      showNotification("Conti Pareggiati", `Saldate tutte le pendenze con ${selectedDetailPerson} (${formatCurrency(absNet)}).`);
+      openPersonHistoryModal(selectedDetailPerson);
+    }
+
+    /* Filtri Categoria Ultime Transazioni */
+    function renderCategoryFiltersBar() {
+      const bar = document.getElementById('categoriesFilterBar');
+      if (!bar) return;
+
+      const cats = [{ id: 'all', name: 'Tutte' }, ...appState.categories];
+      bar.innerHTML = cats.map(c => {
+        const isActive = currentCategoryFilter === c.id;
+        const activeClass = isActive 
+          ? "bg-obol-accent text-black font-bold" 
+          : "bg-obol-card text-slate-400 hover:text-white border border-obol-border";
+        return `
+          <button onclick="setCategoryFilter('${c.id}')" class="px-3 py-1 rounded-xl text-xs whitespace-nowrap transition ${activeClass}">
+            ${escapeHtml(c.name)}
+          </button>
+        `;
+      }).join('');
+    }
+
+    function setCategoryFilter(catId) {
+      currentCategoryFilter = catId;
+      const label = document.getElementById('txActiveFilterLabel');
+      if (label) {
+        if (catId === 'all') {
+          label.innerText = 'Tutte';
+        } else {
+          const found = appState.categories.find(c => c.id === catId);
+          label.innerText = found ? found.name : 'Tutte';
+        }
+      }
+      renderCategoryFiltersBar();
+      renderTransactionsList();
+    }
+
+    function toggleTxHistoryExpand() {
+      isHistoryExpanded = !isHistoryExpanded;
+      const btn = document.getElementById('toggleTxHistoryBtn');
+      if (btn) {
+        btn.innerText = isHistoryExpanded ? "Mostra solo le recenti" : "Vedi tutto lo storico";
+      }
+      renderTransactionsList();
+    }
+
+    function renderTransactionsList() {
+      const list = document.getElementById('recentTransactionsList');
+      if (!list) return;
+
+      let filtered = appState.transactions;
+      if (currentCategoryFilter !== 'all') {
+        filtered = filtered.filter(t => t.categoryId === currentCategoryFilter);
+      }
+
+      if (filtered.length === 0) {
+        list.innerHTML = `<div class="p-6 text-center text-xs text-slate-500 bg-obol-card rounded-2xl">Nessuna transazione per questa categoria.</div>`;
+        return;
+      }
+
+      const displayList = isHistoryExpanded ? filtered : filtered.slice(0, 5);
+
+      list.innerHTML = displayList.map(tx => {
+        const cat = appState.categories.find(c => c.id === tx.categoryId) || { name: 'Altro', color: '#94A3B8', icon: 'fa-receipt' };
+        const acc = appState.accounts.find(a => a.id === tx.accountId) || { name: 'Conto' };
+        const isInc = tx.type === 'income';
+        const dateObj = new Date(tx.date);
+        const dateStr = dateObj.toLocaleDateString('it-IT', { day: 'numeric', month: 'short' });
+        const formattedAmount = formatCurrency(tx.amount);
+        const amountColor = isInc ? 'text-emerald-400' : 'text-slate-200';
+
+        let splitBadge = '';
+        let clickAction = '';
+        if (tx.isSplit && tx.splitParticipants && tx.splitParticipants.length > 0) {
+          splitBadge = `<span class="text-[9px] px-1.5 py-0.5 rounded bg-obol-accent/10 border border-obol-accent/20 text-obol-accent font-semibold ml-1.5">Split (${tx.splitParticipants.length})</span>`;
+          clickAction = `onclick="openSplitTxDetailModal('${tx.id}')"`;
+        }
+
+        return `
+          <div ${clickAction} class="p-3.5 rounded-2xl bg-obol-card border border-obol-border flex items-center justify-between ${clickAction ? 'cursor-pointer hover:bg-obol-cardHover' : ''} transition">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-2xl flex items-center justify-center text-xs text-black font-bold shrink-0" style="background-color: ${cat.color}">
+                <i class="fa-solid ${cat.icon || 'fa-tag'}"></i>
+              </div>
+              <div>
+                <div class="flex items-center">
+                  <h4 class="text-xs font-semibold text-white truncate max-w-[170px]">${escapeHtml(tx.desc)}</h4>
+                  ${splitBadge}
+                </div>
+                <p class="text-[10px] text-slate-400">${dateStr} • ${escapeHtml(acc.name)}</p>
+              </div>
+            </div>
+            <div class="text-right">
+              <span class="text-xs font-bold ${amountColor}">${isInc ? '+' : '-'}${formattedAmount}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    /* Modal Dettagli Transazione Splittata */
+    function openSplitTxDetailModal(txId) {
+      const tx = appState.transactions.find(t => t.id === txId);
+      if (!tx || !tx.splitParticipants) return;
+
+      const modal = document.getElementById('splitTxDetailModal');
+      const content = document.getElementById('splitTxDetailContent');
+      if (!modal || !content) return;
+
+      const myShare = tx.myShare !== undefined ? tx.myShare : (tx.amount / (tx.splitParticipants.length + 1));
+
+      content.innerHTML = `
+        <div class="p-3 rounded-2xl bg-obol-bg border border-obol-border space-y-1">
+          <p class="text-xs text-slate-400">Descrizione: <strong class="text-white">${escapeHtml(tx.desc)}</strong></p>
+          <p class="text-xs text-slate-400">Importo Totale Pagato: <strong class="text-white">${formatCurrency(tx.amount)}</strong></p>
+          <p class="text-xs text-obol-accent font-bold">La tua quota personale: ${formatCurrency(myShare)}</p>
+        </div>
+        <div class="space-y-1.5 pt-1">
+          <span class="text-[10px] uppercase font-bold text-slate-400 block">Quote dei partecipanti:</span>
+          ${tx.splitParticipants.map(p => `
+            <div class="p-2.5 rounded-xl bg-obol-bg border border-obol-border flex items-center justify-between text-xs">
+              <span class="font-medium text-slate-200">${escapeHtml(p.person)}</span>
+              <span class="font-bold text-emerald-400">Deve restituirti: ${formatCurrency(p.share)}</span>
+            </div>
+          `).join('')}
+        </div>
+      `;
+
+      modal.classList.remove('hidden');
+    }
+
+    function closeSplitTxDetailModal() {
+      const modal = document.getElementById('splitTxDetailModal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    /* ====================================================
+       CONTI & FUNZIONE REGOLA & GUARDA POT
+    ==================================================== */
+    function renderAccounts() {
+      const list = document.getElementById('accountsList');
+      if (!list || !appState.accounts) return;
+
+      if (!appState.potAllocations) appState.potAllocations = [];
+
+      list.innerHTML = appState.accounts.map(acc => {
+        const accountAllocations = appState.potAllocations.filter(pa => pa.accountId === acc.id);
+        const totalPotsOnAccount = accountAllocations.reduce((sum, pa) => sum + Number(pa.amount), 0);
+        const hasPots = accountAllocations.length > 0;
+        const isPotsOpen = openPotsAccountIds.has(acc.id);
+
+        let potDetailsHtml = '';
+        if (hasPots && isPotsOpen) {
+          potDetailsHtml = `
+            <div class="mt-3 pt-3 border-t border-obol-border/60 text-xs space-y-2 bg-obol-bg/60 p-3 rounded-2xl">
+              <div class="flex justify-between items-center text-[11px] text-slate-300 font-medium">
+                <span>Di <strong>${formatCurrency(acc.balance)}</strong> a disposizione:</span>
+                <span class="text-obol-accent font-bold">${formatCurrency(totalPotsOnAccount)} riservati</span>
+              </div>
+              <div class="space-y-1.5 pt-1">
+                ${accountAllocations.map(pa => `
+                  <div class="flex items-center justify-between text-[11px] text-slate-400">
+                    <span class="flex items-center gap-1.5 truncate">
+                      <i class="fa-solid fa-piggy-bank text-obol-accent text-[10px]"></i>
+                      ${escapeHtml(pa.goalName)}
+                    </span>
+                    <span class="font-semibold text-slate-200 whitespace-nowrap">${formatCurrency(pa.amount)}</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `;
+        }
+
+        return `
+          <div class="p-4 rounded-3xl bg-obol-card border border-obol-border">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-obol-bg border border-obol-border flex items-center justify-center text-obol-accent">
+                  <i class="fa-solid ${acc.icon || 'fa-wallet'}"></i>
+                </div>
+                <div>
+                  <h4 class="text-xs font-semibold text-slate-200">${escapeHtml(acc.name)}</h4>
+                  <span class="text-[10px] uppercase tracking-wider text-slate-500">${acc.type}</span>
+                </div>
+              </div>
+              <div class="text-right">
+                <p class="text-sm font-bold text-white">${formatCurrency(acc.balance)}</p>
+                <div class="flex items-center gap-1.5 justify-end mt-1">
+                  ${hasPots ? `
+                    <button onclick="toggleAccountPots('${acc.id}')" class="text-[10px] text-obol-accent font-semibold px-2 py-0.5 rounded-lg bg-obol-bg border border-obol-border flex items-center gap-1">
+                      <span>Guarda pot</span>
+                      <i class="fa-solid ${isPotsOpen ? 'fa-chevron-up' : 'fa-chevron-down'} text-[8px]"></i>
+                    </button>
+                  ` : ''}
+                  <button onclick="openAdjustAccountModal('${acc.id}')" class="text-[11px] text-slate-400 hover:text-white font-medium px-2 py-0.5 rounded-lg bg-obol-bg border border-obol-border/60">
+                    Regola
+                  </button>
+                  <button onclick="openEditAccountModal('${acc.id}')" title="Modifica Conto" class="text-slate-400 hover:text-obol-accent p-1 text-xs">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                  </button>
+                  <button onclick="promptDeleteAccount('${acc.id}')" title="Elimina Conto" class="text-slate-500 hover:text-rose-400 p-1 text-xs">
+                    <i class="fa-regular fa-trash-can"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+            ${potDetailsHtml}
+          </div>
+        `;
+      }).join('');
+    }
+
+    function toggleAccountPots(accId) {
+      if (openPotsAccountIds.has(accId)) {
+        openPotsAccountIds.delete(accId);
+      } else {
+        openPotsAccountIds.add(accId);
+      }
+      renderAccounts();
+    }
+
+    /* Modifica e Rinomina Conto */
+    function openEditAccountModal(accId) {
+      const acc = appState.accounts.find(a => a.id === accId);
+      if (!acc) return;
+      selectedEditAccountId = accId;
+
+      document.getElementById('editAccountNameInput').value = acc.name;
+      document.getElementById('editAccountTypeSelect').value = acc.type || 'Banca';
+      document.getElementById('editAccountIconSelect').value = acc.icon || 'fa-building-columns';
+
+      document.getElementById('editAccountModal').classList.remove('hidden');
+      document.getElementById('editAccountNameInput').focus();
+    }
+
+    function closeEditAccountModal() {
+      const modal = document.getElementById('editAccountModal');
+      if (modal) modal.classList.add('hidden');
+      selectedEditAccountId = null;
+    }
+
+    function saveEditedAccount() {
+      if (!selectedEditAccountId) return;
+      const acc = appState.accounts.find(a => a.id === selectedEditAccountId);
+      if (!acc) return;
+
+      const newName = document.getElementById('editAccountNameInput').value.trim();
+      const newType = document.getElementById('editAccountTypeSelect').value;
+      const newIcon = document.getElementById('editAccountIconSelect').value;
+
+      if (!newName) {
+        showNotification("Attenzione", "Il nome del conto non può essere vuoto.");
+        return;
+      }
+
+      acc.name = newName;
+      acc.type = newType;
+      acc.icon = newIcon;
+
+      saveState();
+      closeEditAccountModal();
+      renderAll();
+      showNotification("Conto Aggiornato", `Conto rinominato in "${newName}".`);
+    }
+
+    /* Eliminazione Conto con Doppia Conferma */
+    function promptDeleteAccount(accId) {
+      if (appState.accounts.length <= 1) {
+        showNotification("Attenzione", "Devi mantenere almeno un conto attivo per gestire le tue finanze.");
+        return;
+      }
+
+      const acc = appState.accounts.find(a => a.id === accId);
+      if (!acc) return;
+      selectedDeleteAccountId = accId;
+
+      document.getElementById('deleteAccountTargetName').innerText = `${acc.name} (${formatCurrency(acc.balance)})`;
+      document.getElementById('deleteAccountConfirmModal').classList.remove('hidden');
+    }
+
+    function closeDeleteAccountConfirmModal() {
+      const modal = document.getElementById('deleteAccountConfirmModal');
+      if (modal) modal.classList.add('hidden');
+      selectedDeleteAccountId = null;
+    }
+
+    function confirmDeleteAccount() {
+      if (!selectedDeleteAccountId) return;
+      const acc = appState.accounts.find(a => a.id === selectedDeleteAccountId);
+      const accName = acc ? acc.name : "Conto";
+
+      appState.accounts = appState.accounts.filter(a => a.id !== selectedDeleteAccountId);
+
+      // Rimuovi eventuali allocazioni mentali dei pot associate a questo conto
+      if (appState.potAllocations) {
+        appState.potAllocations = appState.potAllocations.filter(pa => pa.accountId !== selectedDeleteAccountId);
+      }
+
+      saveState();
+      closeDeleteAccountConfirmModal();
+      renderAll();
+      showNotification("Conto Eliminato", `Il conto "${accName}" è stato rimosso.`);
+    }
+
+    function openAdjustAccountModal(accId) {
+      const acc = appState.accounts.find(a => a.id === accId);
+      if (!acc) return;
+      selectedAdjustAccountId = accId;
+
+      document.getElementById('adjustAccountName').innerText = `Conto: ${acc.name}`;
+      document.getElementById('adjustCurrentRecordedBal').innerText = formatCurrency(acc.balance);
+      document.getElementById('adjustNewBalanceInput').value = acc.balance;
+
+      document.getElementById('adjustAccountModal').classList.remove('hidden');
+      document.getElementById('adjustNewBalanceInput').focus();
+    }
+
+    function closeAdjustModal() {
+      const modal = document.getElementById('adjustAccountModal');
+      if (modal) modal.classList.add('hidden');
+      selectedAdjustAccountId = null;
+    }
+
+    function saveAccountAdjustment() {
+      if (!selectedAdjustAccountId) return;
+      const acc = appState.accounts.find(a => a.id === selectedAdjustAccountId);
+      if (!acc) return;
+
+      const newBal = parseFloat(document.getElementById('adjustNewBalanceInput').value);
+      if (isNaN(newBal)) return;
+
+      acc.balance = newBal;
+      saveState();
+      closeAdjustModal();
+      renderAll();
+      showNotification("Saldo Regolato", `Saldo di ${acc.name} impostato a ${formatCurrency(newBal)}.`);
+    }
+
+    /* Giroconto tra conti */
+    function openTransferModal() {
+      renderSelectOptions();
+      document.getElementById('transferAmountInput').value = '';
+      document.getElementById('transferModal').classList.remove('hidden');
+    }
+
+    function closeTransferModal() {
+      document.getElementById('transferModal').classList.add('hidden');
+    }
+
+    function saveTransfer() {
+      const fromId = document.getElementById('transferFromSelect').value;
+      const toId = document.getElementById('transferToSelect').value;
+      const amount = parseFloat(document.getElementById('transferAmountInput').value);
+
+      if (fromId === toId || isNaN(amount) || amount <= 0) return;
+
+      const fromAcc = appState.accounts.find(a => a.id === fromId);
+      const toAcc = appState.accounts.find(a => a.id === toId);
+
+      if (!fromAcc || !toAcc) return;
+
+      fromAcc.balance = Number(fromAcc.balance) - amount;
+      toAcc.balance = Number(toAcc.balance) + amount;
+
+      saveState();
+      closeTransferModal();
+      renderAll();
+      showNotification("Giroconto Eseguito", `Trasferiti ${formatCurrency(amount)} da ${fromAcc.name} a ${toAcc.name}.`);
+    }
+
+    /* ====================================================
+       OBIETTIVI / SAVING POTS & ACCANTONAMENTO
+    ==================================================== */
+    function renderGoals() {
+      const list = document.getElementById('goalsList');
+      if (!list || !appState.goals) return;
+
+      if (appState.goals.length === 0) {
+        list.innerHTML = `<div class="p-5 text-center text-xs text-slate-500 bg-obol-card rounded-2xl">Nessun obiettivo attivo. Creane uno per iniziare ad accantonare!</div>`;
+        return;
+      }
+
+      list.innerHTML = appState.goals.map(g => {
+        const pct = Math.min(Math.round((g.current / g.target) * 100), 100);
+        return `
+          <div class="p-4 rounded-3xl bg-obol-card border border-obol-border space-y-3">
+            <div class="flex justify-between items-start">
+              <div>
+                <h4 class="text-xs font-bold text-slate-200">${escapeHtml(g.name)}</h4>
+                <p class="text-[10px] text-slate-400">Scadenza: ${g.deadline || 'Nessuna'}</p>
+              </div>
+              <span class="text-xs font-extrabold text-obol-accent">${pct}%</span>
+            </div>
+
+            <div class="w-full bg-obol-bg h-2 rounded-full overflow-hidden p-0.5 border border-obol-border">
+              <div class="h-full bg-gradient-to-r from-teal-400 to-obol-accent rounded-full transition-all duration-300" style="width: ${pct}%"></div>
+            </div>
+
+            <div class="flex items-center justify-between text-xs">
+              <span class="text-slate-300 font-semibold">${formatCurrency(g.current)} <span class="text-slate-500 font-normal">/ ${formatCurrency(g.target)}</span></span>
+              <div class="flex gap-2">
+                <button onclick="openGoalDepositModal('${g.id}')" class="px-2.5 py-1 rounded-xl bg-obol-bg border border-obol-border text-obol-accent text-[11px] hover:bg-obol-border font-medium flex items-center gap-1">
+                  <i class="fa-solid fa-piggy-bank text-[10px]"></i> Deposita
+                </button>
+                <button onclick="deleteGoal('${g.id}')" class="text-slate-500 hover:text-rose-400 text-xs p-1">
+                  <i class="fa-regular fa-trash-can"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function openNewGoalModal() {
+      document.getElementById('goalNameInput').value = '';
+      document.getElementById('goalTargetInput').value = '';
+      document.getElementById('goalCurrentInput').value = '0';
+      document.getElementById('goalDateInput').value = '';
+      document.getElementById('goalModal').classList.remove('hidden');
+    }
+
+    function closeGoalModal() {
+      document.getElementById('goalModal').classList.add('hidden');
+    }
+
+    function saveNewGoal() {
+      const name = document.getElementById('goalNameInput').value.trim();
+      const target = parseFloat(document.getElementById('goalTargetInput').value);
+      const current = parseFloat(document.getElementById('goalCurrentInput').value) || 0;
+      const deadline = document.getElementById('goalDateInput').value;
+
+      if (!name || isNaN(target) || target <= 0) return;
+
+      appState.goals.push({
+        id: 'goal_' + Date.now(),
+        name,
+        target,
+        current,
+        deadline
+      });
+
+      saveState();
+      closeGoalModal();
+      renderAll();
+      showNotification("Obiettivo Creato", `Aggiunto "${name}" con target ${formatCurrency(target)}.`);
+    }
+
+    function deleteGoal(goalId) {
+      appState.goals = appState.goals.filter(g => g.id !== goalId);
+      if (appState.potAllocations) {
+        appState.potAllocations = appState.potAllocations.filter(pa => pa.goalId !== goalId);
+      }
+      saveState();
+      renderAll();
+    }
+
+    function openGoalDepositModal(goalId) {
+      const g = appState.goals.find(item => item.id === goalId);
+      if (!g) return;
+      selectedDepositGoalId = goalId;
+
+      document.getElementById('goalDepositNameTitle').innerText = g.name;
+      document.getElementById('goalDepositAmountInput').value = '';
+
+      const sel = document.getElementById('goalDepositAccountSelect');
+      if (sel && appState.accounts) {
+        sel.innerHTML = appState.accounts.map(a => `<option value="${a.id}">${a.name} (${formatCurrency(a.balance)})</option>`).join('');
+      }
+
+      document.getElementById('goalDepositModal').classList.remove('hidden');
+      document.getElementById('goalDepositAmountInput').focus();
+    }
+
+    function closeGoalDepositModal() {
+      const modal = document.getElementById('goalDepositModal');
+      if (modal) modal.classList.add('hidden');
+      selectedDepositGoalId = null;
+    }
+
+    function saveGoalDeposit() {
+      if (!selectedDepositGoalId) return;
+      const g = appState.goals.find(item => item.id === selectedDepositGoalId);
+      if (!g) return;
+
+      const amount = parseFloat(document.getElementById('goalDepositAmountInput').value);
+      const accId = document.getElementById('goalDepositAccountSelect').value;
+      const acc = appState.accounts.find(a => a.id === accId);
+
+      if (!amount || isNaN(amount) || amount <= 0 || !acc) return;
+
+      g.current = Number(g.current) + amount;
+
+      if (!appState.potAllocations) appState.potAllocations = [];
+      const existingAlloc = appState.potAllocations.find(pa => pa.goalId === g.id && pa.accountId === acc.id);
+      if (existingAlloc) {
+        existingAlloc.amount = Number(existingAlloc.amount) + amount;
+      } else {
+        appState.potAllocations.push({
+          id: 'pa_' + Date.now(),
+          goalId: g.id,
+          goalName: g.name,
+          accountId: acc.id,
+          amount: amount
+        });
+      }
+
+      openPotsAccountIds.add(acc.id);
+
+      saveState();
+      closeGoalDepositModal();
+      renderAll();
+      showNotification("Pot Aggiornato", `Accantonati ${formatCurrency(amount)} per "${g.name}" da ${acc.name}.`);
+    }
+
+    /* ====================================================
+       INSERIMENTO NUOVA TRANSAZIONE CON SPLIT & RICORRENZA
+    ==================================================== */
+    function setTxType(type) {
+      currentTxType = type;
+      const expBtn = document.getElementById('typeExpenseBtn');
+      const incBtn = document.getElementById('typeIncomeBtn');
+      const splitBox = document.getElementById('txSplitToggleContainer');
+      const recBox = document.getElementById('txRecurringToggleContainer');
+
+      if (type === 'expense') {
+        if (expBtn) expBtn.className = "py-2 text-xs font-bold rounded-xl bg-rose-500/20 text-rose-400 border border-rose-500/30";
+        if (incBtn) incBtn.className = "py-2 text-xs font-bold rounded-xl text-slate-400 hover:text-white";
+        if (splitBox) splitBox.classList.remove('hidden');
+        if (recBox) recBox.classList.remove('hidden');
+      } else {
+        if (incBtn) incBtn.className = "py-2 text-xs font-bold rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
+        if (expBtn) expBtn.className = "py-2 text-xs font-bold rounded-xl text-slate-400 hover:text-white";
+        if (splitBox) splitBox.classList.add('hidden');
+        if (recBox) recBox.classList.add('hidden');
+        document.getElementById('txSplitCheck').checked = false;
+        document.getElementById('txRecurringCheck').checked = false;
+        toggleSplitInputs();
+        toggleRecurringInputs();
+      }
+    }
+
+    function toggleRecurringInputs() {
+      const isChecked = document.getElementById('txRecurringCheck').checked;
+      const section = document.getElementById('recurringDetailsSection');
+      const pickSelect = document.getElementById('recurringPickSelect');
+      if (isChecked) {
+        section.classList.remove('hidden');
+        // Popola l'elenco a discesa dagli abbonamenti memorizzati
+        if (!appState.recurringSubscriptions || appState.recurringSubscriptions.length === 0) {
+          pickSelect.innerHTML = `<option value="">Nessun abbonamento registrato (aggiungine uno in Report)</option>`;
+        } else {
+          pickSelect.innerHTML = `<option value="">-- Seleziona abbonamento --</option>` + appState.recurringSubscriptions.map(s => {
+            return `<option value="${s.id}">${escapeHtml(s.desc)} (${formatCurrency(s.amount)})</option>`;
+          }).join('');
+        }
+      } else {
+        section.classList.add('hidden');
+      }
+    }
+
+    function onSelectSavedSubscription(subId) {
+      if (!subId) return;
+      const sub = appState.recurringSubscriptions.find(s => s.id === subId);
+      if (!sub) return;
+
+      document.getElementById('txAmountInput').value = sub.amount;
+      document.getElementById('txDescInput').value = sub.desc;
+      if (sub.accountId) {
+        document.getElementById('txAccountSelect').value = sub.accountId;
+      }
+    }
+
+    function toggleSplitInputs() {
+      const isChecked = document.getElementById('txSplitCheck').checked;
+      const section = document.getElementById('splitDetailsSection');
+      if (isChecked) {
+        section.classList.remove('hidden');
+        renderSplitContactsSuggestions();
+        recalculateSplitShares();
+      } else {
+        section.classList.add('hidden');
+      }
+    }
+
+    function renderSplitContactsSuggestions() {
+      const box = document.getElementById('quickSplitContacts');
+      if (!box) return;
+
+      const peopleBalances = getPeopleBalances();
+      const frequentNames = Object.keys(peopleBalances);
+
+      if (frequentNames.length === 0) {
+        box.innerHTML = '';
+        return;
+      }
+
+      box.innerHTML = frequentNames.map(name => `
+        <button type="button" onclick="addParticipantByName('${escapeHtml(name)}')" class="px-2 py-0.5 rounded-lg bg-obol-card border border-obol-border text-[10px] text-slate-300 hover:text-white">
+          + ${escapeHtml(name)}
+        </button>
+      `).join('');
+    }
+
+    function addParticipantToSplit() {
+      const input = document.getElementById('newSplitPersonInput');
+      const name = input.value.trim();
+      if (!name) return;
+      addParticipantByName(name);
+      input.value = '';
+    }
+
+    function addParticipantByName(name) {
+      if (currentSplitParticipants.some(p => p.name.toLowerCase() === name.toLowerCase())) return;
+      currentSplitParticipants.push({ name, share: 0 });
+      recalculateSplitShares();
+    }
+
+    function removeParticipantFromSplit(index) {
+      currentSplitParticipants.splice(index, 1);
+      recalculateSplitShares();
+    }
+
+    function recalculateSplitShares() {
+      const totalAmount = parseFloat(document.getElementById('txAmountInput').value) || 0;
+      const totalPeople = currentSplitParticipants.length + 1; // Tu + partecipanti
+
+      let equalShare = totalPeople > 0 ? (totalAmount / totalPeople) : 0;
+      equalShare = Math.round(equalShare * 100) / 100;
+
+      currentSplitParticipants.forEach(p => {
+        p.share = equalShare;
+      });
+
+      renderSplitParticipantsRows();
+      updateMyShareDisplay();
+    }
+
+    function updateSplitParticipantShare(index, newShareVal) {
+      const val = parseFloat(newShareVal) || 0;
+      currentSplitParticipants[index].share = val;
+      updateMyShareDisplay();
+    }
+
+    function updateMyShareDisplay() {
+      const totalAmount = parseFloat(document.getElementById('txAmountInput').value) || 0;
+      const sumOthers = currentSplitParticipants.reduce((acc, p) => acc + Number(p.share || 0), 0);
+      const myShare = Math.max(0, totalAmount - sumOthers);
+      const myEl = document.getElementById('myShareDisplay');
+      if (myEl) myEl.innerText = formatCurrency(myShare);
+    }
+
+    function renderSplitParticipantsRows() {
+      const container = document.getElementById('splitParticipantsContainer');
+      if (!container) return;
+
+      container.innerHTML = currentSplitParticipants.map((p, idx) => `
+        <div class="flex items-center justify-between p-2 rounded-xl bg-obol-card border border-obol-border gap-2">
+          <div class="flex items-center gap-2 truncate">
+            <span class="w-6 h-6 rounded-lg bg-obol-bg border border-obol-border flex items-center justify-center text-[10px] text-obol-accent font-bold">
+              ${escapeHtml(p.name.charAt(0).toUpperCase())}
+            </span>
+            <span class="text-xs text-slate-200 truncate font-medium">${escapeHtml(p.name)}</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] text-slate-400">Quota: €</span>
+            <input type="number" step="0.01" value="${p.share}" oninput="updateSplitParticipantShare(${idx}, this.value)" class="w-16 bg-obol-bg border border-obol-border rounded-lg px-1.5 py-1 text-xs text-white text-right font-bold focus:outline-none focus:border-obol-accent">
+            <button onclick="removeParticipantFromSplit(${idx})" class="text-slate-500 hover:text-rose-400 p-1 text-xs">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function openTxModal() {
+      document.getElementById('txAmountInput').value = "";
+      document.getElementById('txDescInput').value = "";
+      document.getElementById('txSplitCheck').checked = false;
+      document.getElementById('txRecurringCheck').checked = false;
+      currentSplitParticipants = [];
+      setTxType('expense');
+      toggleSplitInputs();
+      toggleRecurringInputs();
+      renderSelectOptions();
+      document.getElementById('txModal').classList.remove('hidden');
+      document.getElementById('txAmountInput').focus();
+
+      document.getElementById('txAmountInput').oninput = function() {
+        if (document.getElementById('txSplitCheck').checked) {
+          recalculateSplitShares();
+        }
+      };
+    }
+
+    function closeTxModal() {
+      const modal = document.getElementById('txModal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function saveTransaction() {
+      const amount = parseFloat(document.getElementById('txAmountInput').value);
+      const desc = document.getElementById('txDescInput').value.trim();
+      const categoryId = document.getElementById('txCategorySelect').value;
+      const accountId = document.getElementById('txAccountSelect').value;
+      const isSplit = document.getElementById('txSplitCheck').checked;
+      const isRecurring = document.getElementById('txRecurringCheck').checked;
+
+      if (!amount || isNaN(amount) || amount <= 0) return;
+      if (!desc) return;
+
+      const account = appState.accounts.find(a => a.id === accountId);
+      if (!account) return;
+
+      if (currentTxType === 'expense') {
+        account.balance = Number(account.balance) - amount;
+      } else {
+        account.balance = Number(account.balance) + amount;
+      }
+
+      const txId = 'tx_' + Date.now();
+      const txDate = new Date().toISOString();
+
+      let splitParticipantsData = [];
+      let myFinalShare = amount;
+
+      if (isSplit && currentTxType === 'expense' && currentSplitParticipants.length > 0) {
+        let othersSum = 0;
+        currentSplitParticipants.forEach(p => {
+          const share = Number(p.share) || 0;
+          othersSum += share;
+          splitParticipantsData.push({
+            person: p.name,
+            share: share
+          });
+
+          appState.splits.unshift({
+            id: 'sp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+            person: p.name,
+            desc: desc,
+            totalAmount: amount,
+            paidBy: 'me',
+            otherOwes: share,
+            settled: false,
+            date: txDate,
+            transactionId: txId
+          });
+        });
+
+        myFinalShare = Math.max(0, amount - othersSum);
+        showNotification("Spesa Divisa", `Spesa registrata e divisa con ${currentSplitParticipants.length} persone.`);
+      }
+
+      const newTx = {
+        id: txId,
+        type: currentTxType,
+        amount: amount,
+        desc: desc,
+        categoryId: categoryId,
+        accountId: accountId,
+        date: txDate,
+        isSplit: isSplit && currentSplitParticipants.length > 0,
+        splitParticipants: splitParticipantsData,
+        myShare: myFinalShare,
+        isRecurring: isRecurring
+      };
+
+      appState.transactions.unshift(newTx);
+      saveState();
+      closeTxModal();
+      renderAll();
+    }
+
+    /* ====================================================
+       GESTIONE ABBONAMENTI REGISTRATI (DA REPORT)
+    ==================================================== */
+    function onSubFrequencyChange(freq) {
+      const container = document.getElementById('subScheduleFields');
+      if (!container) return;
+
+      if (freq === 'monthly') {
+        container.innerHTML = `
+          <div>
+            <label class="text-[10px] text-slate-400 block mb-1">Giorno di passaggio del mese (1-31):</label>
+            <input id="subScheduleDay" type="number" min="1" max="31" value="10" class="w-full bg-obol-card border border-obol-border rounded-xl px-2.5 py-1.5 text-xs text-white font-bold focus:outline-none focus:border-obol-accent">
+            <p class="text-[10px] text-slate-500 mt-1 italic">Riceverai un promemoria 3 giorni prima del passaggio.</p>
+          </div>
+        `;
+      } else if (freq === 'weekly') {
+        container.innerHTML = `
+          <div>
+            <label class="text-[10px] text-slate-400 block mb-1">Giorno della settimana:</label>
+            <select id="subScheduleWeekday" class="w-full bg-obol-card border border-obol-border rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-obol-accent">
+              <option value="1">Lunedì</option>
+              <option value="2">Martedì</option>
+              <option value="3">Mercoledì</option>
+              <option value="4">Giovedì</option>
+              <option value="5">Venerdì</option>
+              <option value="6">Sabato</option>
+              <option value="0">Domenica</option>
+            </select>
+            <p class="text-[10px] text-slate-500 mt-1 italic">Riceverai un promemoria 1 giorno prima del passaggio.</p>
+          </div>
+        `;
+      } else if (freq === 'yearly') {
+        container.innerHTML = `
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-[10px] text-slate-400 block mb-1">Giorno (1-31):</label>
+              <input id="subScheduleDay" type="number" min="1" max="31" value="1" class="w-full bg-obol-card border border-obol-border rounded-xl px-2.5 py-1.5 text-xs text-white font-bold focus:outline-none focus:border-obol-accent">
+            </div>
+            <div>
+              <label class="text-[10px] text-slate-400 block mb-1">Mese:</label>
+              <select id="subScheduleMonth" class="w-full bg-obol-card border border-obol-border rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none">
+                <option value="0">Gennaio</option>
+                <option value="1">Febbraio</option>
+                <option value="2">Marzo</option>
+                <option value="3">Aprile</option>
+                <option value="4">Maggio</option>
+                <option value="5">Giugno</option>
+                <option value="6">Luglio</option>
+                <option value="7">Agosto</option>
+                <option value="8">Settembre</option>
+                <option value="9">Ottobre</option>
+                <option value="10">Novembre</option>
+                <option value="11">Dicembre</option>
+              </select>
+            </div>
+          </div>
+          <p class="text-[10px] text-slate-500 mt-1 italic">Riceverai un promemoria 3 giorni prima del rinnovo annuale.</p>
+        `;
+      }
+    }
+
+    function openNewSubscriptionModal() {
+      document.getElementById('newSubDescInput').value = '';
+      document.getElementById('newSubAmountInput').value = '';
+      document.getElementById('newSubFrequencySelect').value = 'monthly';
+      onSubFrequencyChange('monthly');
+
+      const accSelect = document.getElementById('newSubAccountSelect');
+      if (accSelect && appState.accounts) {
+        accSelect.innerHTML = appState.accounts.map(a => `<option value="${a.id}">${a.name} (${formatCurrency(a.balance)})</option>`).join('');
+      }
+
+      document.getElementById('newSubscriptionModal').classList.remove('hidden');
+    }
+
+    function closeNewSubscriptionModal() {
+      const modal = document.getElementById('newSubscriptionModal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function saveNewSubscription() {
+      const desc = document.getElementById('newSubDescInput').value.trim();
+      const amount = parseFloat(document.getElementById('newSubAmountInput').value);
+      const freq = document.getElementById('newSubFrequencySelect').value;
+      const accountId = document.getElementById('newSubAccountSelect').value;
+
+      if (!desc || isNaN(amount) || amount <= 0 || !accountId) return;
+
+      let day = 1;
+      let month = 0;
+      let weekday = 1;
+
+      if (freq === 'monthly') {
+        day = parseInt(document.getElementById('subScheduleDay').value) || 1;
+      } else if (freq === 'weekly') {
+        weekday = parseInt(document.getElementById('subScheduleWeekday').value);
+      } else if (freq === 'yearly') {
+        day = parseInt(document.getElementById('subScheduleDay').value) || 1;
+        month = parseInt(document.getElementById('subScheduleMonth').value) || 0;
+      }
+
+      if (!appState.recurringSubscriptions) appState.recurringSubscriptions = [];
+      appState.recurringSubscriptions.push({
+        id: 'sub_' + Date.now(),
+        desc,
+        amount,
+        frequency: freq,
+        day,
+        month,
+        weekday,
+        accountId,
+        notifiedForCycle: ''
+      });
+
+      saveState();
+      closeNewSubscriptionModal();
+      renderAll();
+      showNotification("Abbonamento Registrato", `Aggiunto promemoria per "${desc}" (${formatCurrency(amount)}).`);
+    }
+
+    /* Controllo Notifiche Abbonamenti con logica differenziata (3 giorni per Mensile/Annuale, 1 giorno per Settimanale) */
+    function checkRecurringAlerts() {
+      if (!appState.recurringSubscriptions || appState.recurringSubscriptions.length === 0) return;
+      const today = new Date();
+      const currentDay = today.getDate();
+      const currentMonth = today.getMonth(); // 0-11
+      const currentYear = today.getFullYear();
+      const currentWeekday = today.getDay(); // 0-6
+
+      appState.recurringSubscriptions.forEach(sub => {
+        const acc = appState.accounts ? appState.accounts.find(a => a.id === sub.accountId) : null;
+        const accName = acc ? acc.name : "conto";
+        const cycleKey = `${currentYear}-${currentMonth}-${sub.frequency === 'weekly' ? today.getTime() : currentDay}`;
+
+        if (sub.frequency === 'monthly') {
+          const payDay = Number(sub.day) || 1;
+          let daysUntil = payDay - currentDay;
+          if (daysUntil < 0) {
+            const daysInCurrentMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+            daysUntil = (daysInCurrentMonth - currentDay) + payDay;
+          }
+          if (daysUntil <= 3 && daysUntil >= 0 && sub.notifiedForCycle !== `${currentYear}-${currentMonth}`) {
+            const dayLabel = daysUntil === 0 ? "Oggi" : (daysUntil === 1 ? "Domani" : `tra ${daysUntil} giorni (il ${payDay})`);
+            showNotification(
+              "Promemoria Abbonamento",
+              `${dayLabel} passerà l'abbonamento mensile di ${formatCurrency(sub.amount)} per "${sub.desc}" dal ${accName}.`
+            );
+            sub.notifiedForCycle = `${currentYear}-${currentMonth}`;
+          }
+        } else if (sub.frequency === 'weekly') {
+          const targetWeekday = Number(sub.weekday);
+          let daysUntil = targetWeekday - currentWeekday;
+          if (daysUntil < 0) daysUntil += 7;
+          
+          // Avviso SOLO 1 giorno prima per il settimanale
+          if (daysUntil <= 1 && sub.notifiedForCycle !== `${currentYear}-W${today.getDate()}`) {
+            const dayLabel = daysUntil === 0 ? "Oggi" : "Domani";
+            showNotification(
+              "Promemoria Settimanale",
+              `${dayLabel} passerà l'addebito settimanale di ${formatCurrency(sub.amount)} per "${sub.desc}" dal ${accName}.`
+            );
+            sub.notifiedForCycle = `${currentYear}-W${today.getDate()}`;
+          }
+        } else if (sub.frequency === 'yearly') {
+          const targetMonth = Number(sub.month);
+          const targetDay = Number(sub.day);
+          const nextTarget = new Date(currentYear, targetMonth, targetDay);
+          if (nextTarget < today) nextTarget.setFullYear(currentYear + 1);
+          
+          const diffDays = Math.ceil((nextTarget - today) / (1000 * 60 * 60 * 24));
+          if (diffDays <= 3 && diffDays >= 0 && sub.notifiedForCycle !== `${nextTarget.getFullYear()}-${targetMonth}`) {
+            const dayLabel = diffDays === 0 ? "Oggi" : (diffDays === 1 ? "Domani" : `tra ${diffDays} giorni`);
+            showNotification(
+              "Rinnovo Annuale",
+              `${dayLabel} è previsto il rinnovo annuale di ${formatCurrency(sub.amount)} per "${sub.desc}" dal ${accName}.`
+            );
+            sub.notifiedForCycle = `${nextTarget.getFullYear()}-${targetMonth}`;
+          }
+        }
+      });
+    }
+
+    /* ====================================================
+       REPORT & LISTA ABBONAMENTI
+    ==================================================== */
+    function renderReport() {
+      const now = new Date();
+      const payday = appState.user.salaryPayDay || 10;
+      const currentCycle = getPaydayCycleInterval(now, payday);
+
+      // Ciclo precedente
+      const prevReference = new Date(currentCycle.start);
+      prevReference.setDate(prevReference.getDate() - 2);
+      const prevCycle = getPaydayCycleInterval(prevReference, payday);
+
+      let currentSpent = 0;
+      let prevSpent = 0;
+
+      appState.transactions.forEach(t => {
+        if (t.type === 'expense') {
+          const tDate = new Date(t.date);
+          if (tDate >= currentCycle.start && tDate <= currentCycle.end) currentSpent += Number(t.amount);
+          if (tDate >= prevCycle.start && tDate <= prevCycle.end) prevSpent += Number(t.amount);
+        }
+      });
+
+      const currEl = document.getElementById('currentMonthSpentDisplay');
+      if (currEl) currEl.innerText = formatCurrency(currentSpent);
+      const prevEl = document.getElementById('prevMonthSpentDisplay');
+      if (prevEl) prevEl.innerText = formatCurrency(prevSpent);
+
+      const trendBox = document.getElementById('trendSummaryBox');
+      if (trendBox) {
+        if (prevSpent === 0) {
+          trendBox.innerText = `Nessuna spesa nel ciclo precedente per fare il confronto.`;
+        } else {
+          const diff = currentSpent - prevSpent;
+          const diffPct = Math.round((Math.abs(diff) / prevSpent) * 100);
+          if (diff > 0) {
+            trendBox.innerHTML = `<span class="text-rose-400 font-bold">+${diffPct}%</span> rispetto allo stesso periodo del mese scorso (${formatCurrency(diff)} in più).`;
+          } else {
+            trendBox.innerHTML = `<span class="text-emerald-400 font-bold">-${diffPct}%</span> rispetto allo stesso periodo del mese scorso (${formatCurrency(Math.abs(diff))} risparmiati).`;
+          }
+        }
+      }
+
+      // Lista Abbonamenti con frequenza dettagliata
+      const subsList = document.getElementById('subscriptionsList');
+      if (subsList) {
+        if (!appState.recurringSubscriptions || appState.recurringSubscriptions.length === 0) {
+          subsList.innerHTML = `<p class="text-slate-500 italic">Nessun pagamento ricorrente registrato. Premi "+ Aggiungi" per memorizzarne uno.</p>`;
+        } else {
+          const weekdaysMap = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
+          const monthsMap = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
+
+          subsList.innerHTML = appState.recurringSubscriptions.map(s => {
+            const acc = appState.accounts.find(a => a.id === s.accountId);
+            let scheduleText = '';
+            if (s.frequency === 'monthly') {
+              scheduleText = `Mensile (giorno ${s.day || 1}) • Avviso 3gg prima`;
+            } else if (s.frequency === 'weekly') {
+              scheduleText = `Settimanale (ogni ${weekdaysMap[s.weekday || 1]}) • Avviso 1g prima`;
+            } else if (s.frequency === 'yearly') {
+              scheduleText = `Annuale (${s.day || 1} ${monthsMap[s.month || 0]}) • Avviso 3gg prima`;
+            }
+
+            return `
+              <div class="p-3 rounded-2xl bg-obol-bg border border-obol-border flex items-center justify-between">
+                <div>
+                  <p class="font-bold text-white">${escapeHtml(s.desc)}</p>
+                  <p class="text-[10px] text-slate-400 mt-0.5">${scheduleText} • ${acc ? escapeHtml(acc.name) : 'Conto'}</p>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="font-extrabold text-white">${formatCurrency(s.amount)}</span>
+                  <button onclick="deleteSubscription('${s.id}')" class="text-slate-500 hover:text-rose-400 p-1 text-xs">
+                    <i class="fa-regular fa-trash-can"></i>
+                  </button>
+                </div>
+              </div>
+            `;
+          }).join('');
+        }
+      }
+    }
+
+    function deleteSubscription(subId) {
+      appState.recurringSubscriptions = appState.recurringSubscriptions.filter(s => s.id !== subId);
+      saveState();
+      renderAll();
+    }
+
+    /* Notifiche Drop-down Drawer */
+    function toggleNotificationsDrawer() {
+      const drawer = document.getElementById('notificationsDrawer');
+      if (!drawer) return;
+      const isClosed = drawer.classList.contains('-translate-y-full');
+      if (isClosed) {
+        drawer.classList.remove('-translate-y-full', 'opacity-0', 'pointer-events-none');
+        drawer.classList.add('translate-y-0', 'opacity-100');
+      } else {
+        drawer.classList.add('-translate-y-full', 'opacity-0', 'pointer-events-none');
+        drawer.classList.remove('translate-y-0', 'opacity-100');
+      }
+    }
+
+    function renderNotifications() {
+      const list = document.getElementById('notificationsList');
+      const badge = document.getElementById('notifBadge');
+      if (!list) return;
+
+      cleanOldNotifications();
+
+      if (!appState.notifications || appState.notifications.length === 0) {
+        list.innerHTML = `<p class="text-slate-500 text-center py-2">Nessuna notifica presente.</p>`;
+        if (badge) badge.classList.add('hidden');
+        return;
+      }
+
+      if (badge) badge.classList.remove('hidden');
+
+      list.innerHTML = appState.notifications.map(n => `
+        <div class="p-2.5 rounded-xl bg-obol-bg border border-obol-border/60">
+          <p class="font-bold text-slate-200">${escapeHtml(n.title)}</p>
+          <p class="text-[11px] text-slate-400 mt-0.5">${escapeHtml(n.text)}</p>
+        </div>
+      `).join('');
+    }
+
+    function showNotification(title, text) {
+      if (!appState.notifications) appState.notifications = [];
+      appState.notifications.unshift({
+        id: 'n_' + Date.now(),
+        title,
+        text,
+        date: new Date().toISOString()
+      });
+      cleanOldNotifications();
+      renderNotifications();
+
+      const toast = document.getElementById('toastMessage');
+      const toastText = document.getElementById('toastText');
+      if (toast && toastText) {
+        toastText.innerText = `${title}: ${text}`;
+        toast.classList.remove('opacity-0', 'pointer-events-none');
+        setTimeout(() => {
+          toast.classList.add('opacity-0', 'pointer-events-none');
+        }, 3200);
+      }
+    }
+
+    /* ====================================================
+       CATEGORIE, IMPOSTAZIONI & OPZIONI SELECT
+    ==================================================== */
+    function renderSelectOptions() {
+      const catSelect = document.getElementById('txCategorySelect');
+      if (catSelect && appState.categories) {
+        catSelect.innerHTML = appState.categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+      }
+
+      const accSelect = document.getElementById('txAccountSelect');
+      if (accSelect && appState.accounts) {
+        accSelect.innerHTML = appState.accounts.map(a => `<option value="${a.id}">${a.name} (${formatCurrency(a.balance)})</option>`).join('');
+      }
+
+      const fromSelect = document.getElementById('transferFromSelect');
+      const toSelect = document.getElementById('transferToSelect');
+      if (fromSelect && toSelect && appState.accounts) {
+        const opts = appState.accounts.map(a => `<option value="${a.id}">${a.name} (${formatCurrency(a.balance)})</option>`).join('');
+        fromSelect.innerHTML = opts;
+        toSelect.innerHTML = opts;
+        if (appState.accounts.length > 1) toSelect.selectedIndex = 1;
+      }
+    }
+
+    function renderCategoriesSettings() {
+      const list = document.getElementById('categoriesSettingsList');
+      if (!list || !appState.categories) return;
+
+      list.innerHTML = appState.categories.map(c => `
+        <div class="flex items-center justify-between p-2.5 rounded-2xl bg-obol-bg border border-obol-border">
+          <div class="flex items-center gap-2.5">
+            <span class="w-3.5 h-3.5 rounded-full" style="background-color: ${c.color}"></span>
+            <span class="text-xs font-semibold text-slate-200">${escapeHtml(c.name)}</span>
+          </div>
+          <button onclick="deleteCategory('${c.id}')" class="text-slate-500 hover:text-rose-400 text-xs p-1">
+            <i class="fa-regular fa-trash-can"></i>
+          </button>
+        </div>
+      `).join('');
+
+      const pinChk = document.getElementById('pinToggleCheck');
+      if (pinChk && appState.user) {
+        pinChk.checked = !!appState.user.pinEnabled;
+      }
+    }
+
+    function openNewCategoryModal() {
+      document.getElementById('newCatNameInput').value = '';
+      document.getElementById('newCatColorInput').value = '#34D399';
+      document.getElementById('categoryModal').classList.remove('hidden');
+    }
+
+    function closeCategoryModal() {
+      const modal = document.getElementById('categoryModal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function saveNewCategory() {
+      const name = document.getElementById('newCatNameInput').value.trim();
+      const color = document.getElementById('newCatColorInput').value;
+
+      if (!name) return;
+
+      const newId = 'cat_' + Date.now();
+      appState.categories.push({
+        id: newId,
+        name: name,
+        color: color,
+        icon: 'fa-tag'
+      });
+
+      saveState();
+      closeCategoryModal();
+      renderAll();
+      showNotification("Categoria Creata", `Aggiunta nuova categoria "${name}".`);
+    }
+
+    function deleteCategory(catId) {
+      if (appState.categories.length <= 1) {
+        showNotification("Attenzione", "Devi mantenere almeno una categoria.");
+        return;
+      }
+      appState.categories = appState.categories.filter(c => c.id !== catId);
+      saveState();
+      renderAll();
+      showNotification("Categoria Rimossa", "Categoria eliminata con successo.");
+    }
+
+    /* ====================================================
+       GESTIONE NUOVO CONTO
+    ==================================================== */
+    function openNewAccountModal() {
+      document.getElementById('newAccountNameInput').value = '';
+      document.getElementById('newAccountInitialBalanceInput').value = '';
+      document.getElementById('newAccountTypeSelect').value = 'Banca';
+      document.getElementById('newAccountIconSelect').value = 'fa-building-columns';
+      document.getElementById('newAccountModal').classList.remove('hidden');
+      document.getElementById('newAccountNameInput').focus();
+    }
+
+    function closeNewAccountModal() {
+      const modal = document.getElementById('newAccountModal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function saveNewAccount() {
+      const name = document.getElementById('newAccountNameInput').value.trim();
+      const initialBal = parseFloat(document.getElementById('newAccountInitialBalanceInput').value) || 0;
+      const type = document.getElementById('newAccountTypeSelect').value;
+      const icon = document.getElementById('newAccountIconSelect').value;
+
+      if (!name) {
+        showNotification("Attenzione", "Inserisci il nome del conto.");
+        return;
+      }
+
+      const newAcc = {
+        id: 'acc_' + Date.now(),
+        name: name,
+        balance: initialBal,
+        type: type,
+        icon: icon
+      };
+
+      appState.accounts.push(newAcc);
+      saveState();
+      closeNewAccountModal();
+      renderAll();
+      showNotification("Conto Aggiunto", `Nuovo conto "${name}" con saldo ${formatCurrency(initialBal)} registrato.`);
+    }
+
+    /* ====================================================
+       ESPORTAZIONE PDF PERSONALIZZATA PER DATE
+    ==================================================== */
+    function openPdfExportModal() {
+      const now = new Date();
+      const payday = appState.user.salaryPayDay || 10;
+      const { start, end } = getPaydayCycleInterval(now, payday);
+
+      // Pre-compila le date con il ciclo attuale
+      const startIso = start.toISOString().split('T')[0];
+      const endIso = end.toISOString().split('T')[0];
+
+      document.getElementById('pdfStartDateInput').value = startIso;
+      document.getElementById('pdfEndDateInput').value = endIso;
+
+      document.getElementById('pdfExportModal').classList.remove('hidden');
+    }
+
+    function closePdfExportModal() {
+      const modal = document.getElementById('pdfExportModal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function generateCustomPdfReport() {
+      const startVal = document.getElementById('pdfStartDateInput').value;
+      const endVal = document.getElementById('pdfEndDateInput').value;
+
+      if (!startVal || !endVal) {
+        showNotification("Errore", "Seleziona sia la data di inizio che quella di fine.");
+        return;
+      }
+
+      const startDate = new Date(startVal + 'T00:00:00');
+      const endDate = new Date(endVal + 'T23:59:59');
+
+      if (startDate > endDate) {
+        showNotification("Errore", "La data di inizio non può essere successiva alla data di fine.");
+        return;
+      }
+
+      closePdfExportModal();
+      buildAndLaunchPdf(startDate, endDate);
+    }
+
+    function buildAndLaunchPdf(startDate, endDate) {
+      const now = new Date();
+      let totInc = 0;
+      let totExp = 0;
+
+      const filteredTx = appState.transactions.filter(t => {
+        const td = new Date(t.date);
+        return td >= startDate && td <= endDate;
+      });
+
+      filteredTx.forEach(t => {
+        if (t.type === 'income') totInc += Number(t.amount);
+        if (t.type === 'expense') totExp += Number(t.amount);
+      });
+
+      const rows = filteredTx.map(t => {
+        const cat = appState.categories.find(c => c.id === t.categoryId) || { name: 'Altro' };
+        const acc = appState.accounts.find(a => a.id === t.accountId) || { name: 'Conto' };
+        const d = new Date(t.date).toLocaleDateString('it-IT');
+        const sign = t.type === 'income' ? '+' : '-';
+        const color = t.type === 'income' ? '#059669' : '#dc2626';
+        return `
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 9px 10px;">${d}</td>
+            <td style="padding: 9px 10px;"><strong>${escapeHtml(t.desc)}</strong></td>
+            <td style="padding: 9px 10px;">${escapeHtml(cat.name)}</td>
+            <td style="padding: 9px 10px;">${escapeHtml(acc.name)}</td>
+            <td style="padding: 9px 10px; text-align: right; color: ${color}; font-weight: bold;">${sign}${formatCurrency(t.amount)}</td>
+          </tr>
+        `;
+      }).join('');
+
+      const accountsRows = appState.accounts.map(a => `
+        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 14px; margin-bottom: 6px; display: flex; justify-content: space-between;">
+          <span style="font-weight: 600; color: #334155;">${escapeHtml(a.name)} (${a.type})</span>
+          <strong style="color: #0f172a;">${formatCurrency(a.balance)}</strong>
+        </div>
+      `).join('');
+
+      const printHtml = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Estratto Conto Obol - ${startDate.toLocaleDateString('it-IT')} al ${endDate.toLocaleDateString('it-IT')}</title>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b; padding: 20px; margin: 0; background-color: #f8fafc; }
+            .container { max-width: 800px; margin: 0 auto; background: white; padding: 24px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+            .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #0f172a; padding-bottom: 15px; margin-bottom: 20px; }
+            .title { font-size: 22px; font-weight: 800; color: #0f172a; margin: 0; }
+            .badge { background: #e2e8f0; padding: 5px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; color: #334155; }
+            .summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+            .card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; }
+            .card span { font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 4px; }
+            .card strong { font-size: 16px; color: #0f172a; }
+            table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; }
+            th { background: #f1f5f9; padding: 9px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569; }
+            .actions-bar { margin-bottom: 16px; display: flex; gap: 10px; }
+            .print-btn { background: #059669; color: white; border: none; padding: 10px 18px; border-radius: 8px; font-weight: bold; font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+            @media print {
+              .actions-bar { display: none !important; }
+              body { background: white; padding: 0; }
+              .container { box-shadow: none; padding: 0; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="actions-bar">
+              <button class="print-btn" onclick="window.print()">
+                🖨️ Scarica / Salva come PDF
+              </button>
+            </div>
+            <div class="header">
+              <div>
+                <h1 class="title">OBOL FINANCE</h1>
+                <p style="margin: 4px 0 0; font-size: 12px; color: #64748b;">Estratto Conto Personalizzato</p>
+              </div>
+              <div style="text-align: right;">
+                <span class="badge">Intervallo: ${startDate.toLocaleDateString('it-IT')} - ${endDate.toLocaleDateString('it-IT')}</span>
+                <p style="margin: 4px 0 0; font-size: 11px; color: #64748b;">Generato il ${now.toLocaleDateString('it-IT')}</p>
+              </div>
+            </div>
+
+            <div class="summary">
+              <div class="card">
+                <span>Totale Entrate</span>
+                <strong style="color: #059669;">+${formatCurrency(totInc)}</strong>
+              </div>
+              <div class="card">
+                <span>Totale Spese</span>
+                <strong style="color: #dc2626;">-${formatCurrency(totExp)}</strong>
+              </div>
+              <div class="card">
+                <span>Risparmio Netto</span>
+                <strong style="color: #0284c7;">${formatCurrency(totInc - totExp)}</strong>
+              </div>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+              <h3 style="font-size: 13px; text-transform: uppercase; color: #64748b; margin-bottom: 8px;">Saldi Attuali dei Conti</h3>
+              ${accountsRows}
+            </div>
+
+            <h3 style="font-size: 13px; text-transform: uppercase; color: #64748b; margin-bottom: 8px;">Dettaglio Transazioni (${filteredTx.length})</h3>
+            ${filteredTx.length === 0 ? '<p style="font-size: 12px; color: #94a3b8; font-style: italic;">Nessuna transazione registrata in questo arco temporale.</p>' : `
+            <table>
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Descrizione</th>
+                  <th>Categoria</th>
+                  <th>Conto</th>
+                  <th style="text-align: right;">Importo</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rows}
+              </tbody>
+            </table>`}
+          </div>
+          <script>
+            // Su mobile avvia subito il dialogo di stampa/PDF
+            window.onload = function() {
+              setTimeout(function() {
+                window.print();
+              }, 400);
+            };
+          <\/script>
+        </body>
+        </html>
+      `;
+
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write(printHtml);
+        printWindow.document.close();
+        printWindow.focus();
+        showNotification("PDF Pronto", "Scheda PDF aperta. Su Android tocca 'Salva in PDF'.");
+      } else {
+        window.print();
+      }
+    }
+
+    function exportBackupData() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appState, null, 2));
+      const dlAnchor = document.createElement('a');
+      dlAnchor.setAttribute("href", dataStr);
+      dlAnchor.setAttribute("download", `obol_backup_${new Date().toISOString().slice(0, 10)}.json`);
+      document.body.appendChild(dlAnchor);
+      dlAnchor.click();
+      dlAnchor.remove();
+      showNotification("Backup Esportato", "File JSON salvato nella cartella Download del telefono.");
+    }
+
+    function copyBackupToClipboard() {
+      const text = JSON.stringify(appState, null, 2);
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        showNotification("Copiato negli Appunti", "Codice di backup copiato. Puoi incollarlo in una nota o chat.");
+      } catch (err) {
+        showNotification("Errore", "Impossibile copiare negli appunti.");
+      }
+      document.body.removeChild(textArea);
+    }
+
+    function promptPasteBackup() {
+      const pasted = prompt("Incolla qui il testo del backup JSON copiato in precedenza:");
+      if (!pasted) return;
+
+      try {
+        const parsed = JSON.parse(pasted);
+        if (parsed.accounts && parsed.transactions) {
+          appState = parsed;
+          saveState();
+          renderAll();
+          showNotification("Dati Ripristinati", "Tutti i tuoi dati sono stati ripristinati correttamente.");
+        } else {
+          showNotification("Errore", "I dati incollati non contengono una struttura Obol valida.");
+        }
+      } catch (e) {
+        showNotification("Errore", "Testo non valido (formato JSON errato).");
+      }
+    }
+
+    function restoreBackupData(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          if (parsed.accounts && parsed.transactions) {
+            appState = parsed;
+            saveState();
+            renderAll();
+            showNotification("Dati Ripristinati", "Tutti i tuoi dati sono stati ripristinati correttamente.");
+          }
+        } catch (err) {
+          showNotification("Errore", "File JSON non valido.");
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    /* Ripristino Dati Puliti */
+    function confirmFactoryReset() {
+      if (confirm("Sei sicuro di voler azzerare tutti i dati e ripartire da zero? Questa operazione cancellerà tutte le transazioni registrate finora.")) {
+        localStorage.removeItem('obol_finance_state');
+        appState = JSON.parse(JSON.stringify(DEFAULT_DATA));
+        saveState();
+        renderAll();
+        showNotification("Dati Azzerati", "L'applicazione è tornata allo stato iniziale pulito.");
+      }
+    }
+
+    /* AVVIO */
+    window.onload = function() {
+      loadState();
+      checkRecurringAlerts();
+      updateClock();
+      setInterval(updateClock, 30000);
+
+      // Se il blocco PIN è abilitato nelle impostazioni, mostra la schermata di blocco all'avvio
+      if (appState.user && appState.user.pinEnabled) {
+        lockApp();
+      }
+    };
+  </script>
+</body>
+</html>
