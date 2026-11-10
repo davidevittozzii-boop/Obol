@@ -1,0 +1,48 @@
+name: Compila APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Scarica il codice
+      uses: actions/checkout@v4
+
+    - name: Installa Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+
+    - name: Configura Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: Prepara ambiente Android
+      run: |
+        npm install -g cordova
+        # Sostituisci "Obol" con il nome che vuoi vedere sul telefono
+        cordova create myapp com.esempio.app "Obol"
+        
+        # Copia i file web dentro l'app
+        cp -r * myapp/www/ || true
+        
+        cd myapp
+        
+        # Se esiste icon.png, imposta l'icona personalizzata
+        if [ -f www/icon.png ]; then
+          sed -i '/<\/widget>/i \    <icon src="www/icon.png" />' config.xml
+        fi
+        
+        cordova platform add android
+        cordova build android --debug
+
+    - name: Salva il file APK scaricabile
+      uses: actions/upload-artifact@v4
+      with:
+        name: App-Debug
+        path: myapp/platforms/android/app/build/outputs/apk/debug/app-debug.apk
