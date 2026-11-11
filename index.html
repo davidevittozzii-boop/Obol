@@ -62,20 +62,12 @@
 <body class="flex justify-center items-center min-h-screen p-0 sm:p-4">
 
   <!-- FRAME DISPOSITIVO SMARTPHONE -->
-  <div class="relative w-full max-w-[430px] h-[100dvh] sm:h-[880px] bg-obol-bg sm:rounded-[44px] overflow-hidden flex flex-col border border-obol-border/60 shadow-2xl">
+  <div class="relative w-full max-w-[430px] h-[100dvh] sm:h-[880px] bg-obol-bg sm:rounded-[44px] overflow-hidden flex flex-col border border-obol-border/60 shadow-2xl pt-2 sm:pt-0">
     
-    <!-- STATUS BAR ANDROID MINIMAL -->
-    <div class="h-10 px-6 pt-2 flex items-center justify-between text-xs text-slate-400 select-none z-30 shrink-0">
-      <span id="statusBarClock" class="font-medium tracking-tight text-[11px] text-slate-300">09:41</span>
-      <div class="flex items-center space-x-2 text-[10px]">
-        <i class="fa-solid fa-wifi"></i>
-        <i class="fa-solid fa-signal"></i>
-        <i class="fa-solid fa-battery-full text-obol-accent"></i>
-      </div>
-    </div>
+    <!-- STATUS BAR FITTIZIA RIMOSSA COMPLETAMENTE: IL TELEFONO HA GIA' LA SUA REALE -->
 
     <!-- NOTIFICHE DROP-DOWN (DRAWER) -->
-    <div id="notificationsDrawer" class="absolute top-10 left-0 w-full bg-obol-card/95 backdrop-blur-xl border-b border-obol-border px-5 py-4 z-40 transition-all duration-300 shadow-2xl transform -translate-y-full opacity-0 pointer-events-none">
+    <div id="notificationsDrawer" class="absolute top-0 left-0 w-full bg-obol-card/95 backdrop-blur-xl border-b border-obol-border px-5 py-4 z-40 transition-all duration-300 shadow-2xl transform -translate-y-full opacity-0 pointer-events-none pt-4">
       <div class="flex items-center justify-between mb-3">
         <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
           <i class="fa-regular fa-bell text-obol-accent"></i> Notifiche & Promemoria
@@ -90,7 +82,7 @@
     </div>
 
     <!-- AREA CONTENUTO SCORREVOLE -->
-    <main id="mainContainer" class="flex-1 overflow-y-auto px-5 pb-24 pt-1 hide-scrollbar">
+    <main id="mainContainer" class="flex-1 overflow-y-auto px-5 pb-24 pt-2 hide-scrollbar">
       
       <!-- SCHERMATA: HOME / DASHBOARD -->
       <section id="viewDashboard" class="space-y-4">
@@ -344,7 +336,7 @@
               </div>
               <div>
                 <p class="text-xs font-bold text-white">Blocco App & Biometria</p>
-                <p class="text-[10px] text-slate-400">Richiedi Impronta o PIN all'avvio</p>
+                <p class="text-[10px] text-slate-400">Impronta / Sblocco di sistema Android o PIN Obol</p>
               </div>
             </div>
             <label class="relative inline-flex items-center cursor-pointer">
@@ -353,7 +345,7 @@
             </label>
           </div>
           <div class="flex justify-between items-center pt-2 border-t border-obol-border/60 text-xs">
-            <span class="text-slate-400 text-[11px]">PIN personale dell'app:</span>
+            <span class="text-slate-400 text-[11px]">PIN di sicurezza Obol:</span>
             <button onclick="changePinCodePrompt()" class="text-[11px] text-obol-accent font-semibold hover:underline flex items-center gap-1">
               <i class="fa-solid fa-key text-[10px]"></i> Imposta / Cambia PIN
             </button>
@@ -446,8 +438,8 @@
           <button onclick="pressPinDigit('7')" class="h-14 rounded-2xl bg-obol-card border border-obol-border text-lg font-bold text-white active:bg-obol-border">7</button>
           <button onclick="pressPinDigit('8')" class="h-14 rounded-2xl bg-obol-card border border-obol-border text-lg font-bold text-white active:bg-obol-border">8</button>
           <button onclick="pressPinDigit('9')" class="h-14 rounded-2xl bg-obol-card border border-obol-border text-lg font-bold text-white active:bg-obol-border">9</button>
-          <!-- TASTO IMPRONTA/BIOMETRIA -->
-          <button onclick="triggerBiometricUnlock()" class="h-14 rounded-2xl bg-obol-card border border-obol-border flex items-center justify-center text-obol-accent text-xl active:bg-obol-border">
+          <!-- TASTO IMPRONTA/BIOMETRIA REALE -->
+          <button onclick="triggerBiometricUnlock()" title="Usa Impronta o Biometria Android" class="h-14 rounded-2xl bg-obol-card border border-obol-border flex items-center justify-center text-obol-accent text-xl active:bg-obol-border">
             <i class="fa-solid fa-fingerprint"></i>
           </button>
           <button onclick="pressPinDigit('0')" class="h-14 rounded-2xl bg-obol-card border border-obol-border text-lg font-bold text-white active:bg-obol-border">0</button>
@@ -459,7 +451,7 @@
 
       <div class="pb-6 text-center">
         <button onclick="triggerBiometricUnlock()" class="text-xs text-slate-400 hover:text-white flex items-center justify-center gap-2">
-          <i class="fa-solid fa-fingerprint text-obol-accent"></i> Tocca per usare l'impronta digitale
+          <i class="fa-solid fa-fingerprint text-obol-accent"></i> Tocca per autenticarti con l'impronta o biometria
         </button>
       </div>
     </div>
@@ -1128,7 +1120,7 @@
     const DEFAULT_DATA = {
       user: {
         pinEnabled: false,
-        pinCode: '1234',
+        pinCode: '',
         monthlyBudget: 1500,
         salaryPayDay: 10
       },
@@ -1175,6 +1167,10 @@
         updatePinDots();
         document.getElementById('lockErrorMsg').innerText = '';
         lock.classList.remove('hidden');
+        // Se disponibile, attiva subito la richiesta di impronta
+        if (window.PublicKeyCredential) {
+          setTimeout(triggerBiometricUnlock, 300);
+        }
       }
     }
 
@@ -1218,7 +1214,15 @@
     }
 
     function checkEnteredPin() {
-      const expected = appState.user.pinCode || '1234';
+      const expected = appState.user.pinCode;
+      if (!expected) {
+        // Se non è stato ancora impostato un PIN personale, avvisa
+        document.getElementById('lockErrorMsg').innerText = 'Nessun PIN impostato. Configuralo in Altro.';
+        enteredPin = '';
+        setTimeout(updatePinDots, 400);
+        return;
+      }
+
       if (enteredPin === expected) {
         unlockApp();
         showNotification("Autenticato", "Benvenuto su Obol.");
@@ -1229,27 +1233,50 @@
       }
     }
 
-    /* Simulazione Biometrica Android (WebAuthn / Impronta) */
+    /* Autenticazione Biometrica Reale tramite API Android / WebAuthn */
     async function triggerBiometricUnlock() {
-      // Tenta l'uso delle API native WebAuthn/Credentials del telefono
-      if (window.PublicKeyCredential && PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable) {
+      const lockError = document.getElementById('lockErrorMsg');
+      if (window.PublicKeyCredential && navigator.credentials) {
         try {
-          const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
-          if (available) {
-            // Se disponibile, sblocca come l'impronta del telefono
+          const challenge = new Uint8Array(32);
+          window.crypto.getRandomValues(challenge);
+
+          // Richiesta di autenticazione al sistema operativo Android (impronta / volto / credenziale dispositivo)
+          const assertion = await navigator.credentials.get({
+            publicKey: {
+              challenge: challenge,
+              timeout: 60000,
+              userVerification: "required"
+            }
+          });
+
+          if (assertion) {
             unlockApp();
-            showNotification("Biometria Verificata", "Sblocco con impronta completato.");
+            showNotification("Biometria Riconosciuta", "Accesso consentito tramite impronta/sistema.");
             return;
           }
-        } catch (e) {}
+        } catch (err) {
+          // L'utente ha annullato o il sensore non ha riconosciuto l'impronta
+          if (lockError) {
+            lockError.innerText = "Biometria non riconosciuta o annullata. Inserisci il PIN.";
+          }
+          return;
+        }
+      } else {
+        if (lockError) {
+          lockError.innerText = "Sensore biometrico web non disponibile. Usa il PIN a 4 cifre.";
+        }
       }
-      // Fallback trasparente: sblocco diretto se l'utente tocca il sensore
-      unlockApp();
-      showNotification("Sbloccato", "Accesso autorizzato tramite impronta.");
     }
 
     function togglePinSecurity() {
       const chk = document.getElementById('pinToggleCheck');
+      if (chk.checked && !appState.user.pinCode) {
+        chk.checked = false;
+        changePinCodePrompt();
+        showNotification("Configura PIN", "Imposta prima un codice PIN a 4 cifre per proteggere l'app.");
+        return;
+      }
       appState.user.pinEnabled = chk.checked;
       saveState();
       showNotification("Sicurezza", chk.checked ? "Blocco PIN/Biometria attivato all'avvio." : "Blocco automatico disattivato.");
@@ -1992,6 +2019,38 @@
 
       const myShare = tx.myShare !== undefined ? tx.myShare : (tx.amount / (tx.splitParticipants.length + 1));
 
+      // Controlla per ogni partecipante quanto è stato rimborsato rispetto allo split originario
+      const participantsHtml = tx.splitParticipants.map(p => {
+        // Cerca lo split collegato a questa transazione per questa persona
+        const matchedSplit = (appState.splits || []).find(s => s.transactionId === tx.id && s.person.toLowerCase() === p.person.toLowerCase());
+        
+        let statusString = '';
+        if (matchedSplit) {
+          if (matchedSplit.settled || Number(matchedSplit.otherOwes) <= 0.01) {
+            statusString = `<span class="text-slate-400 font-semibold flex items-center gap-1"><i class="fa-solid fa-circle-check text-emerald-400"></i> Già interamente rimborsato</span>`;
+          } else {
+            const originalShare = Number(p.share);
+            const remainingDue = Number(matchedSplit.otherOwes);
+            const alreadyPaid = Math.max(0, originalShare - remainingDue);
+
+            if (alreadyPaid > 0.01) {
+              statusString = `<span class="text-amber-300 font-bold">Restituiti ${formatCurrency(alreadyPaid)} su ${formatCurrency(originalShare)} (Residuo: ${formatCurrency(remainingDue)})</span>`;
+            } else {
+              statusString = `<span class="text-emerald-400 font-bold">Deve restituirti: ${formatCurrency(remainingDue)}</span>`;
+            }
+          }
+        } else {
+          statusString = `<span class="text-emerald-400 font-bold">Quota: ${formatCurrency(p.share)}</span>`;
+        }
+
+        return `
+          <div class="p-2.5 rounded-xl bg-obol-bg border border-obol-border flex items-center justify-between text-xs">
+            <span class="font-medium text-slate-200">${escapeHtml(p.person)}</span>
+            ${statusString}
+          </div>
+        `;
+      }).join('');
+
       content.innerHTML = `
         <div class="p-3 rounded-2xl bg-obol-bg border border-obol-border space-y-1">
           <p class="text-xs text-slate-400">Descrizione: <strong class="text-white">${escapeHtml(tx.desc)}</strong></p>
@@ -1999,13 +2058,8 @@
           <p class="text-xs text-obol-accent font-bold">La tua quota personale: ${formatCurrency(myShare)}</p>
         </div>
         <div class="space-y-1.5 pt-1">
-          <span class="text-[10px] uppercase font-bold text-slate-400 block">Quote dei partecipanti:</span>
-          ${tx.splitParticipants.map(p => `
-            <div class="p-2.5 rounded-xl bg-obol-bg border border-obol-border flex items-center justify-between text-xs">
-              <span class="font-medium text-slate-200">${escapeHtml(p.person)}</span>
-              <span class="font-bold text-emerald-400">Deve restituirti: ${formatCurrency(p.share)}</span>
-            </div>
-          `).join('')}
+          <span class="text-[10px] uppercase font-bold text-slate-400 block">Quote e stato rimborsi partecipanti:</span>
+          ${participantsHtml}
         </div>
       `;
 
@@ -2015,6 +2069,193 @@
     function closeSplitTxDetailModal() {
       const modal = document.getElementById('splitTxDetailModal');
       if (modal) modal.classList.add('hidden');
+    }
+
+    /* Modal Regola Saldo Conto */
+    function openAdjustAccountModal(accId) {
+      const acc = appState.accounts.find(a => a.id === accId);
+      if (!acc) return;
+      selectedAdjustAccountId = accId;
+
+      document.getElementById('adjustAccountName').innerText = `Conto: ${acc.name}`;
+      document.getElementById('adjustCurrentRecordedBal').innerText = formatCurrency(acc.balance);
+      
+      // CAMPO VUOTO COME RICHIESTO (con placeholder)
+      const input = document.getElementById('adjustNewBalanceInput');
+      input.value = '';
+      input.placeholder = 'Inserisci saldo reale (es. 120.50)';
+
+      document.getElementById('adjustAccountModal').classList.remove('hidden');
+      input.focus();
+    }
+    /* Render Lista Ultime Transazioni con Pulsante Cestino */
+    function renderTransactionsList() {
+      const list = document.getElementById('recentTransactionsList');
+      if (!list) return;
+
+      let filtered = appState.transactions;
+      if (currentCategoryFilter !== 'all') {
+        filtered = filtered.filter(t => t.categoryId === currentCategoryFilter);
+      }
+
+      if (filtered.length === 0) {
+        list.innerHTML = `<div class="p-6 text-center text-xs text-slate-500 bg-obol-card rounded-2xl">Nessuna transazione per questa categoria.</div>`;
+        return;
+      }
+
+      const displayList = isHistoryExpanded ? filtered : filtered.slice(0, 5);
+
+      list.innerHTML = displayList.map(tx => {
+        const cat = appState.categories.find(c => c.id === tx.categoryId) || { name: 'Altro', color: '#94A3B8', icon: 'fa-receipt' };
+        const acc = appState.accounts.find(a => a.id === tx.accountId) || { name: 'Conto' };
+        const isInc = tx.type === 'income';
+        const dateObj = new Date(tx.date);
+        const dateStr = dateObj.toLocaleDateString('it-IT', { day: 'numeric', month: 'short' });
+        const formattedAmount = formatCurrency(tx.amount);
+        const amountColor = isInc ? 'text-emerald-400' : 'text-slate-200';
+
+        let splitBadge = '';
+        if (tx.isSplit && tx.splitParticipants && tx.splitParticipants.length > 0) {
+          splitBadge = `<button onclick="openSplitTxDetailModal('${tx.id}')" class="text-[9px] px-1.5 py-0.5 rounded bg-obol-accent/10 border border-obol-accent/20 text-obol-accent font-semibold ml-1.5 hover:bg-obol-accent/20">Split (${tx.splitParticipants.length})</button>`;
+        }
+
+        return `
+          <div class="p-3.5 rounded-2xl bg-obol-card border border-obol-border flex items-center justify-between transition">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-2xl flex items-center justify-center text-xs text-black font-bold shrink-0" style="background-color: ${cat.color}">
+                <i class="fa-solid ${cat.icon || 'fa-tag'}"></i>
+              </div>
+              <div>
+                <div class="flex items-center">
+                  <h4 class="text-xs font-semibold text-white truncate max-w-[140px] sm:max-w-[170px]">${escapeHtml(tx.desc)}</h4>
+                  ${splitBadge}
+                </div>
+                <p class="text-[10px] text-slate-400">${dateStr} • ${escapeHtml(acc.name)}</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2.5">
+              <span class="text-xs font-bold ${amountColor}">${isInc ? '+' : '-'}${formattedAmount}</span>
+              <!-- PULSANTE CESTINO PER ELIMINARE LA TRANSAZIONE -->
+              <button onclick="deleteTransaction('${tx.id}')" title="Elimina Transazione" class="text-slate-500 hover:text-rose-400 p-1.5 rounded-lg hover:bg-rose-500/10 transition text-xs">
+                <i class="fa-regular fa-trash-can"></i>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    /* Eliminazione Transazione con Ripristino Automatico Saldo */
+    function deleteTransaction(txId) {
+      const tx = appState.transactions.find(t => t.id === txId);
+      if (!tx) return;
+
+      // Ripristina il saldo sul conto associato
+      const acc = appState.accounts.find(a => a.id === tx.accountId);
+      if (acc) {
+        if (tx.type === 'expense') {
+          // Se togliamo un'uscita, i soldi tornano sul conto
+          acc.balance = Number(acc.balance) + Number(tx.amount);
+        } else if (tx.type === 'income') {
+          // Se togliamo un'entrata, il saldo viene decurtato
+          acc.balance = Number(acc.balance) - Number(tx.amount);
+        }
+      }
+
+      // Se era una transazione splittata, rimuovi i debiti collegati a questa spesa
+      if (appState.splits) {
+        appState.splits = appState.splits.filter(s => s.transactionId !== txId);
+      }
+
+      // Rimuovi la transazione
+      appState.transactions = appState.transactions.filter(t => t.id !== txId);
+
+      saveState();
+      renderAll();
+      showNotification("Transazione Eliminata", `Spesa rimossa e saldo di ${acc ? acc.name : 'conto'} riallineato.`);
+    }
+
+    /* Richiesta Autorizzazione Notifiche di Sistema Android */
+    function requestPushNotificationPermission() {
+      if ("Notification" in window) {
+        if (Notification.permission === "default") {
+          Notification.requestPermission().then(permission => {
+            if (permission === "granted") {
+              showNotification("Notifiche Attive", "Riceverai i promemoria di pagamento sul telefono.");
+            }
+          });
+        }
+      }
+    }
+
+    /* Invia notifica di sistema reale nel pannello notifiche Android */
+    function triggerSystemNotification(title, body) {
+      if ("Notification" in window && Notification.permission === "granted") {
+        try {
+          new Notification(title, {
+            body: body,
+            icon: "https://placehold.co/128x128/0F1216/34D399?text=Obol"
+          });
+        } catch (e) {}
+      }
+    }
+
+    /* Controllo Notifiche Abbonamenti: ore 09:00 del mattino */
+    function checkRecurringAlerts() {
+      if (!appState.recurringSubscriptions || appState.recurringSubscriptions.length === 0) return;
+      const today = new Date();
+      const currentDay = today.getDate();
+      const currentMonth = today.getMonth(); // 0-11
+      const currentYear = today.getFullYear();
+      const currentWeekday = today.getDay(); // 0-6
+
+      appState.recurringSubscriptions.forEach(sub => {
+        const acc = appState.accounts ? appState.accounts.find(a => a.id === sub.accountId) : null;
+        const accName = acc ? acc.name : "conto";
+
+        if (sub.frequency === 'monthly') {
+          const payDay = Number(sub.day) || 1;
+          let daysUntil = payDay - currentDay;
+          if (daysUntil < 0) {
+            const daysInCurrentMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+            daysUntil = (daysInCurrentMonth - currentDay) + payDay;
+          }
+          if (daysUntil <= 3 && daysUntil >= 0 && sub.notifiedForCycle !== `${currentYear}-${currentMonth}`) {
+            const dayLabel = daysUntil === 0 ? "Oggi" : (daysUntil === 1 ? "Domani" : `tra ${daysUntil} giorni (il ${payDay})`);
+            const msg = `${dayLabel} passerà l'abbonamento mensile di ${formatCurrency(sub.amount)} per "${sub.desc}" dal ${accName}.`;
+            showNotification("Promemoria Abbonamento", msg);
+            triggerSystemNotification("Obol: Promemoria Pagamento", msg);
+            sub.notifiedForCycle = `${currentYear}-${currentMonth}`;
+          }
+        } else if (sub.frequency === 'weekly') {
+          const targetWeekday = Number(sub.weekday);
+          let daysUntil = targetWeekday - currentWeekday;
+          if (daysUntil < 0) daysUntil += 7;
+          
+          if (daysUntil <= 1 && sub.notifiedForCycle !== `${currentYear}-W${today.getDate()}`) {
+            const dayLabel = daysUntil === 0 ? "Oggi" : "Domani";
+            const msg = `${dayLabel} passerà l'addebito settimanale di ${formatCurrency(sub.amount)} per "${sub.desc}" dal ${accName}.`;
+            showNotification("Promemoria Settimanale", msg);
+            triggerSystemNotification("Obol: Addebito Settimanale", msg);
+            sub.notifiedForCycle = `${currentYear}-W${today.getDate()}`;
+          }
+        } else if (sub.frequency === 'yearly') {
+          const targetMonth = Number(sub.month);
+          const targetDay = Number(sub.day);
+          const nextTarget = new Date(currentYear, targetMonth, targetDay);
+          if (nextTarget < today) nextTarget.setFullYear(currentYear + 1);
+          
+          const diffDays = Math.ceil((nextTarget - today) / (1000 * 60 * 60 * 24));
+          if (diffDays <= 3 && diffDays >= 0 && sub.notifiedForCycle !== `${nextTarget.getFullYear()}-${targetMonth}`) {
+            const dayLabel = diffDays === 0 ? "Oggi" : (diffDays === 1 ? "Domani" : `tra ${diffDays} giorni`);
+            const msg = `${dayLabel} è previsto il rinnovo annuale di ${formatCurrency(sub.amount)} per "${sub.desc}" dal ${accName}.`;
+            showNotification("Rinnovo Annuale", msg);
+            triggerSystemNotification("Obol: Rinnovo Annuale", msg);
+            sub.notifiedForCycle = `${nextTarget.getFullYear()}-${targetMonth}`;
+          }
+        }
+      });
+      saveState();
     }
 
     /* ====================================================
@@ -2184,19 +2425,6 @@
       closeDeleteAccountConfirmModal();
       renderAll();
       showNotification("Conto Eliminato", `Il conto "${accName}" è stato rimosso.`);
-    }
-
-    function openAdjustAccountModal(accId) {
-      const acc = appState.accounts.find(a => a.id === accId);
-      if (!acc) return;
-      selectedAdjustAccountId = accId;
-
-      document.getElementById('adjustAccountName').innerText = `Conto: ${acc.name}`;
-      document.getElementById('adjustCurrentRecordedBal').innerText = formatCurrency(acc.balance);
-      document.getElementById('adjustNewBalanceInput').value = acc.balance;
-
-      document.getElementById('adjustAccountModal').classList.remove('hidden');
-      document.getElementById('adjustNewBalanceInput').focus();
     }
 
     function closeAdjustModal() {
@@ -3383,11 +3611,13 @@
     /* AVVIO */
     window.onload = function() {
       loadState();
+      requestPushNotificationPermission();
       checkRecurringAlerts();
-      updateClock();
-      setInterval(updateClock, 30000);
 
-      // Se il blocco PIN è abilitato nelle impostazioni, mostra la schermata di blocco all'avvio
+      // Controllo periodico notifiche (ogni ora)
+      setInterval(checkRecurringAlerts, 3600000);
+
+      // Se il blocco PIN/Biometria è abilitato nelle impostazioni, mostra la schermata di blocco all'avvio
       if (appState.user && appState.user.pinEnabled) {
         lockApp();
       }
