@@ -1106,6 +1106,35 @@
       </div>
     </div>
 
+    <!-- MODAL INCOLLA TESTO BACKUP DEDICATO (CON PULSANTI SEMPRE VISIBILI) -->
+    <div id="pasteBackupModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+      <div class="w-full max-w-sm bg-obol-card border border-obol-border rounded-3xl p-5 space-y-4 max-h-[85vh] flex flex-col">
+        <div class="flex items-center justify-between pb-2 border-b border-obol-border shrink-0">
+          <h3 class="text-sm font-bold text-white flex items-center gap-2">
+            <i class="fa-regular fa-paste text-sky-400"></i> Incolla Testo Backup
+          </h3>
+          <button onclick="closePasteBackupModal()" class="text-slate-400 hover:text-white p-1">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <p class="text-xs text-slate-300 shrink-0">
+          Incolla il codice JSON del backup qui sotto. L'area scorre all'interno così da non nascondere i pulsanti:
+        </p>
+
+        <div class="flex-1 min-h-[160px] max-h-[260px] flex flex-col">
+          <textarea id="pasteBackupTextarea" class="w-full h-full bg-obol-bg border border-obol-border rounded-2xl p-3 text-[11px] font-mono text-slate-200 focus:outline-none focus:border-obol-accent resize-none overflow-y-auto" placeholder="Incolla qui il testo del backup JSON..."></textarea>
+        </div>
+
+        <p id="pasteBackupError" class="text-[11px] text-rose-400 min-h-[16px] font-semibold text-center shrink-0"></p>
+
+        <div class="grid grid-cols-2 gap-2 pt-1 shrink-0 border-t border-obol-border/50">
+          <button onclick="closePasteBackupModal()" class="py-2.5 rounded-xl bg-obol-bg border border-obol-border text-slate-300 text-xs">Annulla</button>
+          <button onclick="confirmPasteBackupFromModal()" class="py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold">Ripristina Dati</button>
+        </div>
+      </div>
+    </div>
+
     <!-- TOAST DI NOTIFICA MINIMAL -->
     <div id="toastMessage" class="absolute top-12 left-1/2 -translate-x-1/2 px-4 py-2.5 rounded-2xl bg-obol-card/95 border border-obol-border shadow-2xl flex items-center gap-2 text-xs text-white z-50 transition-all duration-300 opacity-0 pointer-events-none">
       <i class="fa-solid fa-circle-check text-obol-accent"></i>
@@ -3559,21 +3588,45 @@
     }
 
     function promptPasteBackup() {
-      const pasted = prompt("Incolla qui il testo del backup JSON copiato in precedenza:");
-      if (!pasted) return;
+      const modal = document.getElementById('pasteBackupModal');
+      const textarea = document.getElementById('pasteBackupTextarea');
+      const err = document.getElementById('pasteBackupError');
+      if (!modal) return;
+
+      if (textarea) textarea.value = '';
+      if (err) err.innerText = '';
+      modal.classList.remove('hidden');
+      if (textarea) textarea.focus();
+    }
+
+    function closePasteBackupModal() {
+      const modal = document.getElementById('pasteBackupModal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function confirmPasteBackupFromModal() {
+      const textarea = document.getElementById('pasteBackupTextarea');
+      const err = document.getElementById('pasteBackupError');
+      const pasted = textarea ? textarea.value.trim() : '';
+
+      if (!pasted) {
+        if (err) err.innerText = 'Inserisci o incolla il testo prima di confermare.';
+        return;
+      }
 
       try {
         const parsed = JSON.parse(pasted);
         if (parsed.accounts && parsed.transactions) {
           appState = parsed;
           saveState();
+          closePasteBackupModal();
           renderAll();
           showNotification("Dati Ripristinati", "Tutti i tuoi dati sono stati ripristinati correttamente.");
         } else {
-          showNotification("Errore", "I dati incollati non contengono una struttura Obol valida.");
+          if (err) err.innerText = 'I dati incollati non contengono una struttura Obol valida.';
         }
       } catch (e) {
-        showNotification("Errore", "Testo non valido (formato JSON errato).");
+        if (err) err.innerText = 'Testo non valido: il formato JSON contiene errori.';
       }
     }
 
